@@ -1,0 +1,40 @@
+# Dependencies, package manager state
+node_modules/
+.npm/
+*.tsbuildinfo
+# Compiled output and reports
+dist/
+build/
+coverage/
+playwright-report/
+test-results/
+artifacts/
+server/src/generated/
+# Secrets: examples are the only allowed environment files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+# Logs, caches and temporary files
+*.log
+.cache/
+.vite/
+.vitest/
+.tmp/
+tmp/
+*.pid
+*.pid.lock
+# Local IDE / operating system state
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+# Local database dumps
+*.dump
+*.sql.gz
