@@ -27,7 +27,7 @@ jobs:
       - name: Install locked workspace dependencies
         run: npm ci
       - name: Cache disposable MongoDB test binary
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .mongodb-binaries
           key: mongodb-${{ runner.os }}-${{ runner.arch }}-8.2.6
