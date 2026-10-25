@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { env } from './env.js';
 import { ApiError } from '../lib/api-error.js';
 import type { RequestHandler } from 'express';
+import { initializeModels } from '../models/index.js';
 
 mongoose.set('bufferCommands', false);
 
@@ -55,6 +56,7 @@ export async function connectDatabase(uri: string | undefined = env.MONGODB_URI)
       if (!topology.setName && topology.msg !== 'isdbgrid') {
         throw new Error('Transactions require a replica set or sharded MongoDB cluster.');
       }
+      await initializeModels();
       initialized = true;
       if (env.LOG_LEVEL !== 'silent') console.info('MongoDB connected; transactional database is ready.');
     } catch {
