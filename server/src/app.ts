@@ -1,5 +1,64 @@
+import { existsSync } from 'node:fs';
+import { extname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import express from 'express';
+import cors from 'cors';
+import { env } from './config/env.js';
+import { ApiError } from './lib/api-error.js';
+import { apiNotFound, errorHandler } from './middleware/error-handler.js';
+import { requestLogger } from './middleware/request-logger.js';
 
-export function createApp() {
-  return express();
+interface AppOptions {
+  mode?: 'development' | 'test' | 'production';
+  clientOrigin?: string;
+  clientDistPath?: string;
+  logLevel?: 'info' | 'silent';
+}
+
+export function createApp(options: AppOptions = {}) {
+  const mode = options.mode ?? env.NODE_ENV;
+  const silent = (options.logLevel ?? env.LOG_LEVEL) === 'silent';
+  const app = express();
+
+  app.disable('x-powered-by');
+  app.use(requestLogger(silent));
+  app.use((_req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    next();
+  });
+  if (mode === 'development') {
+    app.use(cors({ origin: options.clientOrigin ?? env.CLIENT_ORIGIN }));
+  }
+  app.use(express.json({ limit: '32kb' }));
+
+  app.get('/api/health', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ success: true, message: 'KairoPass API is running' });
+  });
+  // Match the /api path boundary, including /api itself, before any SPA routes.
+  app.use('/api', apiNotFound);
+
+  if (mode === 'production') {
+    const clientDistPath = options.clientDistPath ?? fileURLToPath(new URL('../../client/dist/', import.meta.url));
+    const entryPoint = join(clientDistPath, 'index.html');
+    if (!existsSync(entryPoint)) {
+      throw new Error('Frontend build missing. Run npm run build before starting production.');
+    }
+    app.use(express.static(clientDistPath, { index: false, dotfiles: 'deny' }));
+    app.use((req, res, next) => {
+      // Only browser navigations get the SPA. Missing assets and other methods stay 404.
+      if (['GET', 'HEAD'].includes(req.method) && req.accepts('html') && !extname(req.path)) {
+        res.setHeader('Cache-Control', 'no-cache');
+        res.sendFile(entryPoint);
+        return;
+      }
+      next();
+    });
+  }
+
+  app.use((_req, _res, next) => {
+    next(new ApiError(404, 'NOT_FOUND', 'The requested resource does not exist.'));
+  });
+  app.use(errorHandler(silent));
+  return app;
 }
