@@ -2,29 +2,30 @@
 
 ## Scope and source
 
-The brief defines 14 sequential tasks, explicitly names Task 01 and Task 02, and
-provides five product workflows. It does **not** enumerate Tasks 03–14. The stages
-below are a proposed allocation of those remaining workflows, not an invented
-quotation of a supplied roadmap. Future task briefs take precedence.
+Task 02 establishes MongoDB + Mongoose as the permanent persistence layer and
+supplies the authoritative remaining roadmap below, replacing the provisional
+allocation recorded during Task 01. See `AGENTS.md` for persistent instructions
+and `database.md` for model/integrity contracts. Future task briefs define the
+detailed scope of each stage; do not implement later workflows prematurely.
 
 Submission deadline: **October 27, 2026, 11:59 PM IST**.
 
 | Task | Milestone | Status |
 | --- | --- | --- |
 | 01 | Repository, architecture, full-stack foundation, developer tooling, CI | Completed — implementation and local acceptance verified |
-| 02 | PostgreSQL and Prisma data architecture, constraints, migrations | Upcoming — confirmed next task |
-| 03 | Registration, login, secure cookie JWT authentication | Proposed |
-| 04 | Role authorization, ownership, protected application navigation | Proposed |
-| 05 | Organizer event creation, editing, publication lifecycle | Proposed |
-| 06 | Public event discovery, search, filters, event detail | Proposed |
-| 07 | Capacity-safe reservations and booking lifecycle | Proposed |
-| 08 | Database-backed simulated payments and confirmation | Proposed |
-| 09 | Signed digital QR tickets and ticket presentation | Proposed |
-| 10 | Organizer ticket verification and replay-safe check-in | Proposed |
-| 11 | Attendee booking and ticket history | Proposed |
-| 12 | Organizer attendance and simulated-payment analytics | Proposed |
-| 13 | Workflow integration, security, accessibility, regression testing | Proposed |
-| 14 | Single-origin release preparation, final documentation, evaluation | Proposed |
+| 02 | MongoDB + Mongoose Architecture, Database Migration & Data Integrity | Completed — implementation and local acceptance verified |
+| 03 | Authentication Backend | Next — not implemented |
+| 04 | Authentication Frontend | Upcoming |
+| 05 | Event Management Backend | Upcoming |
+| 06 | Event Management Frontend | Upcoming |
+| 07 | Event Discovery | Upcoming |
+| 08 | Reservation Engine | Upcoming |
+| 09 | Simulated Payment Gateway | Upcoming |
+| 10 | QR Ticketing | Upcoming |
+| 11 | Ticket Check-In | Upcoming |
+| 12 | Organizer Analytics | Upcoming |
+| 13 | Integration Testing & Hardening | Upcoming |
+| 14 | Production Release & Documentation | Upcoming |
 
 ## Task 01 acceptance record
 
@@ -60,5 +61,43 @@ Regression coverage includes API 404s before SPA fallback, missing assets with a
 without extensions, invalid/oversized JSON, private error handling, request-log
 redaction, origin behavior, configuration failures, and a missing client build.
 
-No authentication, database models, event CRUD, reservations, payments, ticket
-issuance, check-in, or analytics may be introduced in this task.
+The Task 01 record above is historical. Task 02 adds the models and database
+infrastructure, while preserving that application foundation.
+
+## Task 02 acceptance record
+
+Verified locally on **October 26, 2026 (IST)**:
+
+- Mongoose 9.11.4 is the application database dependency; the superseded packages,
+  reserved directory, connection variable, and active documentation were removed/replaced.
+- Five timestamped, typed models define document validation and explicit indexes.
+- Connection initialization verifies transactional topology and real index metadata;
+  imports do not connect; liveness remains independent; readiness/guard return 503
+  when unavailable; shutdown and reconnection are tested; logs never echo the URI.
+- `npm run check` passed: zero-warning lint, strict types, **75 tests / 4 files**,
+  and client/server production builds.
+- **40 MongoDB integration tests** passed against an owned MongoDB 8.2.6 replica
+  set, including actual unique/partial index failures, immutable price snapshots,
+  history retention, ticket identity, transaction commit/rollback, standalone
+  rejection, initial failure sanitization, and connection recovery.
+- Tests ignore application database credentials and guard all disposable-data cleanup.
+- CI runs all suites and builds, with a cache for the disposable MongoDB binary.
+- `database.md` records transaction/expiration/payment/QR strategies and the
+  boundaries that Mongoose validation and references cannot enforce.
+- Root `AGENTS.md` records the permanent database choice, engineering/Git rules,
+  and the supplied Tasks 03–14 roadmap.
+- A fresh `npm ci` passed (368 installed packages, no reported vulnerabilities),
+  followed by another successful full quality gate.
+- Live compiled-server smoke checks passed against an owned replica set:
+  liveness 200, readiness 200, SPA routes/assets, JSON API fallback, no logged URI.
+  Without database configuration, the same compiled application kept liveness
+  and frontend delivery working while returning readiness 503.
+- Source/lockfile scans found no obsolete database configuration/dependencies;
+  only the explicit prohibited-technology instruction in `AGENTS.md` names them.
+  Frontend sources are unchanged from Task 01, and secret/artifact checks passed.
+
+Remote commits and the observed CI conclusion are verified before delivery.
+No Atlas account or persistent application
+database is provisioned by the tests; a local replica set or an environment-provided
+Atlas URI is required for ongoing database readiness. Authentication and business
+workflows remain outside Task 02.
