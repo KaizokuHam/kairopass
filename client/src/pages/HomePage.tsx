@@ -1,0 +1,44 @@
+import { Link } from 'react-router';
+import { ArrowDown, ArrowRight, ArrowUpRight, Compass, Layers3, ScanLine } from 'lucide-react';
+import { PassArtwork } from '@/components/PassArtwork';
+
+const pillars = [
+  { number: '01', icon: Compass, title: 'Find your people.', text: 'Discover experiences that feel like you. From small gatherings to the next big thing.' },
+  { number: '02', icon: Layers3, title: 'Make it happen.', text: 'A considered booking journey, with simulated payments and all your plans in one place.' },
+  { number: '03', icon: ScanLine, title: 'Be in the moment.', text: 'Secure digital tickets and a smoother entrance. Less friction between you and being there.' }
+];
+
+export function HomePage() {
+  return (
+    <>
+      <section className="hero" aria-labelledby="hero-heading">
+        <div className="hero-copy">
+          <div className="eyebrow"><span className="eyebrow-line" />EXPERIENCES, CONNECTED.</div>
+          <h1 id="hero-heading">Your next<br />chapter,<br /><span>in person.</span><span className="heading-spark" aria-hidden="true">✳</span></h1>
+          <p className="hero-description">The best moments happen when you show up.<br className="desktop-break" /> We’re building a better way to get you there.</p>
+          <div className="hero-actions">
+            <a className="button button-primary" href="#platform">Meet KairoPass <ArrowDown size={16} /></a>
+            <Link className="text-link" to="/vision">Explore the vision <ArrowUpRight size={16} /></Link>
+          </div>
+          <div className="build-note"><span className="build-note-dot" /><span>A work in progress. A world of possibility.</span></div>
+        </div>
+        <PassArtwork />
+      </section>
+      <section id="platform" className="platform-section" aria-labelledby="platform-heading">
+        <div className="section-heading">
+          <div><p className="eyebrow">THE IDEA BEHIND THE PASS</p><h2 id="platform-heading">One space. Every step.</h2></div>
+          <span className="planned-label">ON THE HORIZON <ArrowUpRight size={12} /></span>
+        </div>
+        <div className="pillar-grid">
+          {pillars.map(({ number, icon: Icon, title, text }) => (
+            <article key={number} className="pillar">
+              <div className="pillar-top"><Icon size={21} strokeWidth={1.5} /><span>{number} /</span></div>
+              <h3>{title}</h3><p>{text}</p>
+            </article>
+          ))}
+        </div>
+        <div className="foundation-note"><span>We’re laying the groundwork.</span><p>Event discovery, booking, and ticketing are coming in future releases.</p><Link to="/vision" aria-label="Read about the KairoPass vision"><ArrowRight size={18} /></Link></div>
+      </section>
+    </>
+  );
+}

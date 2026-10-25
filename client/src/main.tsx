@@ -1,6 +1,9 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router';
+import { App } from './App';
+import './styles.css';
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode><h1>KairoPass</h1></StrictMode>
+  <StrictMode><BrowserRouter><App /></BrowserRouter></StrictMode>
 );
