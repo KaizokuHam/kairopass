@@ -24,6 +24,14 @@ describe('API foundation', () => {
     expect(first.headers['x-request-id']).not.toBe(second.headers['x-request-id']);
   });
 
+  it('reports database unavailability without changing liveness', async () => {
+    const response = await request(app).get('/api/ready').expect(503);
+    expect(response.body.error.code).toBe('DATABASE_UNAVAILABLE');
+    expect(response.body.error.requestId).toBe(response.headers['x-request-id']);
+    expect(response.headers['cache-control']).toBe('no-store');
+    await request(app).get('/api/health').expect(200);
+  });
+
   it.each(['/api', '/api/unknown', '/api/events'])('returns a JSON API 404 for %s', async (path) => {
     const response = await request(app).get(path).set('Accept', 'text/html').expect(404).expect('Content-Type', /json/);
     expect(response.body).toEqual({

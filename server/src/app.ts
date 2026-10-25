@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 import cors from 'cors';
 import { env } from './config/env.js';
+import { checkDatabaseReadiness } from './config/database.js';
 import { ApiError } from './lib/api-error.js';
 import { apiNotFound, errorHandler } from './middleware/error-handler.js';
 import { requestLogger } from './middleware/request-logger.js';
@@ -34,6 +35,14 @@ export function createApp(options: AppOptions = {}) {
   app.get('/api/health', (_req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     res.json({ success: true, message: 'KairoPass API is running' });
+  });
+  app.get('/api/ready', async (_req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    if (!await checkDatabaseReadiness()) {
+      next(new ApiError(503, 'DATABASE_UNAVAILABLE', 'The database is temporarily unavailable.'));
+      return;
+    }
+    res.json({ success: true, message: 'KairoPass database is ready' });
   });
   // Match the /api path boundary, including /api itself, before any SPA routes.
   app.use('/api', apiNotFound);

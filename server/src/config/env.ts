@@ -12,7 +12,9 @@ const environmentSchema = z.object({
     const url = new URL(value);
     return ['http:', 'https:'].includes(url.protocol) && url.origin === value;
   }, 'Must be an HTTP(S) origin without a path or trailing slash').default('http://localhost:5173'),
-  LOG_LEVEL: z.enum(['info', 'silent']).default('info')
+  LOG_LEVEL: z.enum(['info', 'silent']).default('info'),
+  // Optional for liveness-only use. connectDatabase requires this before connecting.
+  MONGODB_URI: z.string().trim().regex(/^mongodb(?:\+srv)?:\/\/\S+$/, 'Must be a MongoDB connection URI').optional()
 });
 
 export function parseEnvironment(input: NodeJS.ProcessEnv) {
