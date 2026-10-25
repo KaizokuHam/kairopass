@@ -11,7 +11,7 @@ Submission deadline: **October 27, 2026, 11:59 PM IST**.
 
 | Task | Milestone | Status |
 | --- | --- | --- |
-| 01 | Repository, architecture, full-stack foundation, developer tooling, CI | In progress; verification pending |
+| 01 | Repository, architecture, full-stack foundation, developer tooling, CI | Completed — implementation and local acceptance verified |
 | 02 | PostgreSQL and Prisma data architecture, constraints, migrations | Upcoming — confirmed next task |
 | 03 | Registration, login, secure cookie JWT authentication | Proposed |
 | 04 | Role authorization, ownership, protected application navigation | Proposed |
@@ -28,11 +28,37 @@ Submission deadline: **October 27, 2026, 11:59 PM IST**.
 
 ## Task 01 acceptance record
 
-Do not mark completed until dependency installation, frontend/backend startup,
-health response, browser connectivity, strict type checks, tests, lint, production
-build, and secret hygiene are verified. GitHub repository creation, commits,
-pushes, and remote branch contents must be verified separately. CI must match the
-actual scripts and its observed status must be reported honestly.
+Verified on **October 26, 2026 (IST)** with Node.js 24.14.0 and npm 11.9.0:
+
+| Check | Observed result |
+| --- | --- |
+| GitHub account and repository creation | Authenticated as `KaizokuHam`; public `KaizokuHam/kairopass` created |
+| Reproducible workspace installation | `npm ci` passed; 439 packages installed, no audit vulnerabilities reported |
+| Lint | `npm run lint` passed with zero warnings |
+| TypeScript | `npm run typecheck` passed in both workspaces |
+| Automated tests | `npm test` passed: 28 tests across 2 files |
+| Production builds | `npm run build` passed for client and server |
+| Independent development startup | Both `npm run dev -w server` and `npm run dev -w client` started |
+| Combined development startup | `npm run dev` started both workspaces |
+| Backend health | HTTP 200 with the exact required JSON, without database configuration |
+| Frontend API request | Browser displayed API connected through Vite's proxy |
+| Failure feedback | Stopping the API produced API unavailable and a retry control; restart restored connectivity |
+| Responsive shell | Desktop, 390px, and 320px browser checks; horizontal overflow fixed and rechecked |
+| Browser navigation | Overview and vision routes rendered correctly |
+| Compiled production startup | `NODE_ENV=production npm start` served API and client on port 4000 |
+| Production smoke assertions | Health, `/`, `/vision`, real JS/CSS assets, and JSON 404s passed |
+| Production browser connectivity | Compiled `/vision` rendered and displayed API connected on the same origin |
+| Secret / artifact hygiene | No secret-pattern matches in project sources; `.env`, dependencies, and build output ignored and untracked |
+| CI configuration | Push and PR workflow runs install, lint, types, tests, and builds with read-only repository access |
+
+Git commits, final push, default branch, remote head, clean working tree, and the
+observed GitHub Actions conclusion are checked at delivery. Live CI results are
+available in [GitHub Actions](https://github.com/KaizokuHam/kairopass/actions/workflows/ci.yml);
+configuration alone is not a claim that a remote run passed.
+
+Regression coverage includes API 404s before SPA fallback, missing assets with and
+without extensions, invalid/oversized JSON, private error handling, request-log
+redaction, origin behavior, configuration failures, and a missing client build.
 
 No authentication, database models, event CRUD, reservations, payments, ticket
 issuance, check-in, or analytics may be introduced in this task.

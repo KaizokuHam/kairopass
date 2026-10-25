@@ -47,7 +47,8 @@ export function createApp(options: AppOptions = {}) {
     app.use(express.static(clientDistPath, { index: false, dotfiles: 'deny' }));
     app.use((req, res, next) => {
       // Only browser navigations get the SPA. Missing assets and other methods stay 404.
-      if (['GET', 'HEAD'].includes(req.method) && req.accepts('html') && !extname(req.path)) {
+      const isAssetPath = req.path === '/assets' || req.path.startsWith('/assets/');
+      if (['GET', 'HEAD'].includes(req.method) && req.accepts('html') && !extname(req.path) && !isAssetPath) {
         res.setHeader('Cache-Control', 'no-cache');
         res.sendFile(entryPoint);
         return;

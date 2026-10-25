@@ -88,10 +88,71 @@ npm start
 Open <http://127.0.0.1:4000>. Restore development mode afterward with
 `Remove-Item Env:NODE_ENV`. No deployment credentials are required for local use.
 
+## Repository layout
+
+```text
+.
+├── client/
+│   ├── public/                 # Static brand asset
+│   ├── src/
+│   │   ├── components/ui/      # Reusable UI primitives
+│   │   ├── pages/              # Overview, vision, and 404 views
+│   │   ├── layouts/            # Navigation, main content, footer
+│   │   ├── hooks/              # API health lifecycle
+│   │   ├── services/           # Relative-path HTTP client
+│   │   ├── context/            # Reserved for future app state
+│   │   ├── lib/                # Styling utilities
+│   │   ├── types/              # Client API contracts
+│   │   ├── App.tsx
+│   │   └── main.tsx
+│   └── components.json         # shadcn/ui conventions and aliases
+├── server/
+│   ├── prisma/                 # Reserved data architecture boundary
+│   ├── src/
+│   │   ├── modules/            # Future domain modules
+│   │   ├── middleware/         # Logging, errors, API 404
+│   │   ├── config/             # Zod environment validation
+│   │   ├── lib/                # API error class
+│   │   ├── app.ts              # Testable Express factory
+│   │   └── server.ts           # HTTP lifecycle
+│   └── tests/                  # Supertest, config, production fixtures
+├── docs/
+│   ├── architecture.md
+│   └── implementation-plan.md
+├── .github/workflows/ci.yml
+├── .env.example
+├── package.json
+├── package-lock.json
+└── LICENSE
+```
+
+## API foundation
+
+`GET /api/health` is a database-independent liveness check:
+
+```json
+{ "success": true, "message": "KairoPass API is running" }
+```
+
+Errors consistently return `success: false` with `error.code`, `error.message`,
+and `error.requestId`. The response's `X-Request-Id` matches the identifier in
+request logs. Unknown `/api` routes return JSON 404s, including in production;
+missing assets are never replaced with SPA HTML. The app rejects malformed or
+oversized JSON and hides internal error details.
+
+The CI workflow runs `npm ci`, lint, type checks, tests, and production builds
+on pushes and pull requests without a database or deployment secrets.
+
 ## Implementation status
 
-Task 01 is in progress. The workspace and tooling are being established;
-verification results will be recorded before the task is marked complete.
+Task 01 is implemented and locally verified: the workspace, API health endpoint,
+responsive React shell, error and logging contracts, production serving, and CI
+configuration are in place. A clean `npm ci` succeeded; lint, strict type checks,
+28 automated tests, and both builds pass. Browser smoke checks verified the Vite
+proxy, connection failure feedback, mobile layouts, navigation, and the compiled
+single-origin application. See [CI runs](https://github.com/KaizokuHam/kairopass/actions/workflows/ci.yml)
+for the live remote verification result and the implementation plan for the
+acceptance record.
 Authentication, database models, events, bookings, payments, tickets, check-in,
 and analytics are upcoming work. See the roadmap for milestone boundaries.
 
