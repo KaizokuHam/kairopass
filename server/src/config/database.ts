@@ -90,8 +90,8 @@ export async function disconnectDatabase(): Promise<void> {
 }
 
 // Attach to future database-backed routers before their controllers.
-export const requireDatabase: RequestHandler = (_req, _res, next) => {
-  if (!isDatabaseReady()) {
+export const requireDatabase: RequestHandler = async (_req, _res, next) => {
+  if (!await checkDatabaseReadiness()) {
     next(new ApiError(503, 'DATABASE_UNAVAILABLE', 'The database is temporarily unavailable.'));
     return;
   }

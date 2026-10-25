@@ -9,6 +9,8 @@
     "start": "node --env-file-if-exists=../.env dist/server.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:unit": "vitest run --exclude tests/database.integration.test.ts",
+    "test:db": "vitest run tests/database.integration.test.ts",
     "test:watch": "vitest"
   },
   "dependencies": {
@@ -22,6 +24,7 @@
     "@types/cors": "2.8.19",
     "@types/express": "5.0.6",
     "@types/supertest": "7.2.1",
+    "mongodb-memory-server-core": "11.3.0",
     "supertest": "7.3.1",
     "tsx": "4.23.15",
     "vitest": "5.0.5"
