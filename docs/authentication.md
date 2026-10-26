@@ -320,10 +320,11 @@ protected secrets, a working replica set/Atlas URI, and a deliberate proxy polic
 
 | HTTP | Code / use |
 | --- | --- |
-| 400 | VALIDATION_ERROR, with field/message details and no submitted values; INVALID_JSON for malformed JSON |
+| 400 | VALIDATION_ERROR, with field/message details and no submitted values; INVALID_JSON for malformed JSON; INVALID_URL for malformed URL encoding before routing |
 | 401 | INVALID_CREDENTIALS or UNAUTHENTICATED |
 | 403 | FORBIDDEN or UNTRUSTED_ORIGIN |
 | 409 | EMAIL_IN_USE |
+| 415 | UNSUPPORTED_MEDIA_TYPE for unsupported JSON charset/content encoding |
 | 429 | RATE_LIMITED |
 | 503 | AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE |
 | 500 | Unexpected authentication failure, sanitized as INTERNAL_ERROR |

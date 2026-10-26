@@ -16,6 +16,7 @@ This policy cannot be relaxed through query parameters or by sending a cookie.
 - DRAFT, CANCELLED, missing, and already-started events are excluded from listing.
 - Those events and malformed ObjectIds return the same 404 `EVENT_NOT_FOUND`
   through public details, including for the event's organizer.
+  Malformed URL percent/UTF-8 encoding is rejected earlier with global 400 INVALID_URL.
 - Organizers retain their existing authenticated historical access and ownership
   checks under `/api/organizer/events`; no management authorization is weakened.
 - An upcoming event with an elapsed deadline or no remaining inventory stays

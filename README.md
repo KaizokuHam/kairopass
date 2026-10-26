@@ -294,6 +294,13 @@ displayed capacity never guarantees allocation.
 [AGENTS.md](AGENTS.md) records the permanent stack and
 engineering rules for future sessions.
 
+The [mid-project rubric audit](docs/rubric-audit.md) verifies Tasks 01–07 separately
+from final-project completeness. It corrects HTTP/log error boundaries, production
+binding defaults, live publication deadlines, and test worker contention. The final
+audit gate passes **522 tests** (201 frontend, 321 backend), lint, strict types, and
+both builds. Its verdict is **READY WITH DOCUMENTED NONBLOCKING RISKS** for Task 08;
+hosted evaluator access and the remaining business workflows are still required.
+
 ## License
 
 [MIT](LICENSE). Copyright 2026 KaizokuHam.

@@ -19,6 +19,7 @@ Submission deadline: **October 27, 2026, 11:59 PM IST**.
 | 05 | Event Management Backend | Completed — implementation and local acceptance verified |
 | 06 | Event Management Frontend | Completed — implementation and local acceptance verified |
 | 07 | Event Discovery | Completed — implementation and local acceptance verified |
+| 07.5 | Mid-project engineering and rubric audit | Completed — see rubric-audit.md for findings and verification |
 | 08 | Reservation Engine | Next — not implemented |
 | 09 | Simulated Payment Gateway | Upcoming |
 | 10 | QR Ticketing | Upcoming |

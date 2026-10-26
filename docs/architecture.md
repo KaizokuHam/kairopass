@@ -61,6 +61,10 @@ Readiness retains its database-only meaning; auth configuration is checked separ
 
 The error contract is `{ success: false, error: { code, message, requestId } }`.
 Unexpected errors must not expose stack traces or internal messages to clients.
+The central error logger also omits raw exception messages, retaining only fixed
+metadata and request correlation. Malformed URL encoding is rejected before route
+decoding with 400 INVALID_URL; unsupported JSON charset/encoding returns 415
+UNSUPPORTED_MEDIA_TYPE. All error responses are no-store.
 Every response gets a generated request ID. Request logs include method, path
 without query values, status, duration, and request ID; no request bodies,
 authorization headers, or cookies are logged.
@@ -233,6 +237,9 @@ state transitions and idempotency; they will never collect real card data.
 
 Configuration comes from the root `.env` or process environment; process values
 take precedence. `MONGODB_URI` is required for database readiness, but not liveness.
+An omitted HOST uses loopback for development/test and 0.0.0.0 for production;
+explicit HOST and platform PORT remain authoritative. Hosted deployment must remove
+or change the local example's explicit loopback override.
 Authentication requires a strong environment-provided JWT secret and production
 origin settings. Connection/auth failures never log secrets or raw credential-
 bearing driver errors. Secrets must never enter client bundles.

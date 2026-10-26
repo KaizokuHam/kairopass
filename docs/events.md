@@ -328,6 +328,8 @@ Escape when idle, make the background inert, and restore focus on close.
 
 Pending actions disable repeat submission. Status changes and success feedback
 follow actual successful responses; details are fetched again after mutations.
+The publication page and open confirmation also update at start/deadline time
+boundaries. An elapsed window disables publication and prompts schedule correction.
 Known expired publication deadlines or occupied counters disable corresponding
 actions, while the backend remains authoritative. Active-reservation conflicts
 show the actual policy without implying cancellation or refunds. On 409, form/

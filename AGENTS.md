@@ -155,6 +155,17 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 
 ## Verification and Git
 
+- Read `docs/rubric-audit.md` for the Task 07.5 findings and future integration/deployment risks.
+- Keep malformed URL encoding at safe 400 before router/static decoders, unsupported
+  JSON charset/encoding at 415, and error responses no-store. Unexpected central logs
+  retain request IDs/fixed metadata, never raw exception messages or credential values.
+- Default HOST to loopback in development/test and 0.0.0.0 in production; respect
+  explicit HOST/platform PORT. A copied local .env may override the production default.
+- Publication page and confirmation controls share the boundary clock and expire
+  at start/deadline. Backend checks remain authoritative; never imply success locally.
+- Keep frontend test worker concurrency bounded and per-file isolation enabled.
+  Do not hide timing failures by weakening assertions, raising waits blindly, or skipping suites.
+
 - Use `npm ci` and `npm run check` (lint, types, all tests, both builds).
 - `npm run test:unit` needs no MongoDB process; `npm run test:db` owns its replica set.
 - `npm run test:auth` runs authentication unit and real HTTP/replica-set tests with ephemeral keys.
