@@ -1,7 +1,8 @@
-# Authentication backend
+# Authentication
 
-Task 03 implements database-backed cookie authentication. The React authentication
-pages and protected frontend routes belong to Task 04 and are not implemented here.
+Task 03 implements database-backed cookie authentication. Task 04 connects the
+React forms, session provider, protected routing, and role-aware account spaces
+to that API. Both use the same HTTP-only cookie contract.
 
 ## Architecture and flow
 
@@ -338,7 +339,91 @@ credentials for test data or cleanup. Targeted fault injection tests exercise
 transaction rollback and mid-request connection errors alongside real database
 index, transaction, and session checks.
 
-No refresh tokens, password reset, email verification, MFA, frontend auth forms,
-event endpoints, reservations, payments, QR signing, or check-in workflows are
-implemented by Task 03. Password/secret rotation and all-session revocation UI
-are also outside this task. A signing-key change invalidates existing JWTs.
+No refresh tokens, password reset, email verification, MFA, event endpoints,
+reservations, payments, QR signing, or check-in workflows are implemented.
+Password/secret rotation and all-session revocation UI are also outside Tasks
+03–04. A signing-key change invalidates existing JWTs.
+
+## Frontend session and routing
+
+| Route | Access and behavior |
+| --- | --- |
+| `/`, `/vision` | Public, including when auth is unavailable |
+| `/login`, `/register` | Public-only forms; verified users redirect to their own dashboard |
+| `/attendee/dashboard` | Verified ATTENDEE only |
+| `/organizer/dashboard` | Verified ORGANIZER only |
+
+`AuthProvider` exposes `user`, `status`, `pendingAction`, `login`, `register`,
+`logout`, and `refreshSession` through `useAuth`. Its four states are:
+
+- `INITIALIZING`: restoration/retry in progress; protected content stays hidden.
+- `AUTHENTICATED`: a validated public user was returned by the backend.
+- `UNAUTHENTICATED`: `/me` returned 401 or logout succeeded.
+- `UNAVAILABLE`: network, malformed response, or service failure prevents verification.
+  Keep the last known public user in memory, hide private content, and offer retry.
+
+Registration and login adopt the returned user immediately, without a second
+login or simulated session. Only `/me` 401 confirms restoration failure as signed
+out; 503 is not evidence of logout. Account mutations serialize through a mutex
+and abort/invalidate older `/me` requests. Generation checks and provider cleanup
+handle stale responses, navigation, unmount, and React StrictMode. Refresh does
+not interrupt a mutation. Form unmount discards its local inputs while an already
+submitted request remains provider-owned until it settles or times out.
+
+Logout waits for successful backend revocation. Its optional confirmation callback
+navigates to `/` before provider state clears; synchronous router navigation avoids
+an old protected route redirecting the user back to login. Failure retains an
+unavailable session and offers reconnection. Retry verifies actual server state
+because a network failure can occur after a server-side change.
+
+`ProtectedRoute`, `PublicOnlyRoute`, and `RoleGuard` compose in `App.tsx`. Wrong-role
+visits render a 403-style screen without dashboard content. Login return locations
+from route state or a `redirect` query are allowlisted to the verified role's own
+dashboard; external URLs, protocol-relative paths, other roles, and auth routes
+fall back to that dashboard. Safe query/hash values are retained. These guards
+do not replace API authentication, persisted-role checks, or resource ownership.
+
+The API client extends the existing health client with GET/POST JSON requests,
+`credentials: 'same-origin'`, no-store caching, outer cancellation, and a default
+15-second timeout (health: 5 seconds). Runtime parsers allow only the six public
+user fields. `ApiRequestError` preserves status, safe code, validated request ID,
+and bounded numeric/date Retry-After metadata. UI uses local safe messages for
+400/422, 401, 403, 409, 429, and service errors; network, cancellation, timeout,
+and malformed/content-type failures have distinct codes. Raw server messages
+and exception stacks never become form messages.
+
+Forms validate name/email, the backend's Unicode/byte password bounds, and
+confirmation; they normalize email/name but never trim passwords. Inputs remain
+after failure, duplicate submission is blocked, labels/errors are associated,
+password toggles support keyboard use, and autocomplete distinguishes current
+and new passwords. Sensitive form state is cleared on success or discarded on
+unmount. No JWT, password, or session state is stored in localStorage/sessionStorage;
+frontend code never reads or writes authentication cookies.
+
+Account dashboards show actual name, email, role, and membership month. Attendee
+discovery (07), reservations (08), tickets (10), and organizer management (06),
+registrations (08), check-in (11), analytics (12) are labeled upcoming, without
+fake statistics or functional-looking dead controls. Shared layouts and the
+role-configured dashboard can be extended in their assigned tasks.
+
+## Frontend development and verification
+
+Run `npm run dev` and open **http://localhost:5173**. This matches the backend's
+default `CLIENT_ORIGIN`; Vite proxies `/api` to `http://127.0.0.1:4000`. Do not
+switch browser host aliases without updating the exact trusted origin and
+restarting the API. Do not add wildcard origins or set Origin in JavaScript.
+Production uses one HTTPS origin and requires the documented MongoDB/JWT setup.
+
+`npm run test:web` runs Vitest, React Testing Library, user-event, and jsdom tests.
+`npm run test:watch -w client` watches them. Tests replace fetch responses, exercise
+the real provider/router/forms, and need no database. `npm test` and `npm run check`
+also run the unchanged backend regression suites. Browser verification with an
+owned disposable replica set covers both real registration roles, login,
+refresh restoration, logout, cross-role rejection, and post-logout blocking.
+
+There is no proactive cross-tab session synchronization or background renewal.
+Sessions are verified at application startup, explicit retry, and by the backend
+on protected API requests; another tab may retain its last known UI until its
+next verification. Future resource clients must handle their server's 401/403.
+No persistent application database or production signing secret is provisioned
+by the tests. See the [acceptance record](implementation-plan.md#task-04-acceptance-record).

@@ -22,7 +22,7 @@ guests, and understand attendance.
 5. Organizer analytics and reporting.
 
 Payments will be simulated. No real card processing or real payment collection
-is planned. Event/booking/payment/ticket workflows remain upcoming after Task 03.
+is planned. Event/booking/payment/ticket workflows remain upcoming after Task 04.
 
 ## Stack and architecture
 
@@ -30,7 +30,7 @@ is planned. Event/booking/payment/ticket workflows remain upcoming after Task 03
 - Node.js 24, Express 5, TypeScript, Zod.
 - MongoDB replica set / MongoDB Atlas, Mongoose 9, explicit indexes and transaction-ready infrastructure.
 - Argon2id passwords, HTTP-only JWT cookies, MongoDB-backed sessions, and persisted-role authorization.
-- Vitest, Supertest, ESLint, npm workspaces, GitHub Actions.
+- Vitest, React Testing Library, jsdom, Supertest, ESLint, npm workspaces, GitHub Actions.
 
 The browser uses relative `/api` URLs. Vite proxies them to Express during
 development. In production, Express serves both the compiled client and API on
@@ -55,8 +55,10 @@ The web app runs at <http://localhost:5173> and the API at
 `/api/ready` returns 503 until MongoDB is ready. For full database readiness, start
 an owned MongoDB replica set and initialize it as described in
 [database setup](docs/database.md#local-development). A standalone server is rejected.
-Authentication endpoints require database readiness and valid JWT configuration.
-Frontend authentication pages arrive in Task 04.
+Registration, login, session restoration, and logout require database readiness
+and valid JWT configuration. Open Vite at **http://localhost:5173**, matching
+`CLIENT_ORIGIN`; `127.0.0.1:5173` is a different Origin and is not silently trusted.
+The `/api` proxy continues to target `http://127.0.0.1:4000`.
 
 | Command | Purpose |
 | --- | --- |
@@ -67,7 +69,9 @@ Frontend authentication pages arrive in Task 04.
 | `npm run dev -w server` | Start the backend independently |
 | `npm run lint` | Lint the repository, rejecting warnings |
 | `npm run typecheck` | Type-check both workspaces |
-| `npm test` | Run all HTTP, configuration, and real MongoDB integration tests |
+| `npm test` | Run frontend, HTTP, configuration, and real MongoDB integration tests |
+| `npm run test:web` | Run frontend API, state, forms, routing, and validation tests |
+| `npm run test:watch -w client` | Run frontend tests in watch mode |
 | `npm run test:unit` | Run HTTP/configuration/disconnected guard tests without MongoDB |
 | `npm run test:db` | Start an owned disposable MongoDB replica set and run database tests |
 | `npm run test:auth` | Run authentication unit and real HTTP integration tests |
@@ -120,12 +124,13 @@ MongoDB deployment; the liveness endpoint remains independent.
 │   ├── public/                 # Static brand asset
 │   ├── src/
 │   │   ├── components/ui/      # Reusable UI primitives
-│   │   ├── pages/              # Overview, vision, and 404 views
+│   │   ├── pages/              # Public pages, auth forms, role dashboards, 404
 │   │   ├── layouts/            # Navigation, main content, footer
-│   │   ├── hooks/              # API health lifecycle
+│   │   ├── hooks/              # useAuth and API health lifecycle
 │   │   ├── services/           # Relative-path HTTP client
-│   │   ├── context/            # Reserved for future app state
-│   │   ├── lib/                # Styling utilities
+│   │   ├── context/            # In-memory session state and request coordination
+│   │   ├── lib/                # Form validation, safe destinations, styling
+│   │   ├── tests/              # Frontend HTTP-boundary and interaction tests
 │   │   ├── types/              # Client API contracts
 │   │   ├── App.tsx
 │   │   └── main.tsx
@@ -194,6 +199,27 @@ database, Atlas credentials, or deployment secrets are required. The first DB te
 run may download MongoDB 8.2.6 from the official binary distribution. Tests never
 read application `MONGODB_URI` for data cleanup.
 
+## Authentication experience
+
+| Route | Behavior |
+| --- | --- |
+| `/`, `/vision` | Public overview and roadmap |
+| `/login`, `/register` | Accessible forms; authenticated users return to their own dashboard |
+| `/attendee/dashboard` | Attendee account overview; future discovery/reservations/tickets labeled upcoming |
+| `/organizer/dashboard` | Organizer account overview; future event management/check-in/analytics labeled upcoming |
+
+Registration signs the user in immediately using the real API response. Refresh
+restores identity through `/api/auth/me`; only a 401 confirms a signed-out session.
+Network/server failures show a retryable unavailable state and hide protected
+content. Wrong-role dashboard visits show an access-denied screen. Logout returns
+to the public page only after backend revocation succeeds. Account data comes
+from the backend; dashboards contain no fabricated events, counts, or revenue.
+
+`AuthProvider` keeps public user state in memory, cancels superseded reads, and
+serializes account mutations. Tokens remain in HTTP-only cookies; JavaScript
+does not read cookies or use browser storage. See the
+[frontend architecture and recovery behavior](docs/authentication.md#frontend-session-and-routing).
+
 ## Implementation status
 
 Tasks 01–02 establish the application and MongoDB foundation. Task 03 adds the
@@ -206,13 +232,20 @@ checks verify registration/login/me/logout, copied-token rejection, independent
 sessions, CSRF, cookie flags, and safe failures with invalid JWT configuration or
 unavailable MongoDB. The unit-only command separately passes **57 tests**.
 
-The frontend, health contract, existing business models, proxy, and single-origin
-serving remain intact. See [CI runs](https://github.com/KaizokuHam/kairopass/actions/workflows/ci.yml)
-for remote verification and [database architecture](docs/database.md) for data-integrity limits.
+Task 04 adds the real authentication frontend, protected routes, role dashboards,
+and responsive navigation. The clean-install quality gate passes **225 tests**:
+**60 frontend tests / 5 files** and **165 backend tests / 6 files**, plus lint,
+strict types, and both production builds. Real-browser checks cover both roles,
+session restoration, login/logout, cross-role rejection, and responsive layouts.
+Its verification record is in the
+[implementation plan](docs/implementation-plan.md#task-04-acceptance-record).
+The backend security implementation, business models, proxy target, and production
+single-origin serving are preserved. See
+[CI runs](https://github.com/KaizokuHam/kairopass/actions/workflows/ci.yml) for remote
+verification and [database architecture](docs/database.md) for data-integrity limits.
 
-Authentication frontend, event management/discovery, reservation orchestration,
-simulated checkout, QR generation, check-in, and analytics remain upcoming work.
-Task 04 is Authentication Frontend, Protected Routing & User Experience.
+Event management/discovery, reservation orchestration, simulated checkout, QR
+generation, check-in, and analytics remain upcoming. Task 05 is Event Management Backend.
 [AGENTS.md](AGENTS.md) records the permanent stack and
 engineering rules for future sessions.
 

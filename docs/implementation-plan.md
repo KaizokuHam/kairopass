@@ -15,8 +15,8 @@ Submission deadline: **October 27, 2026, 11:59 PM IST**.
 | 01 | Repository, architecture, full-stack foundation, developer tooling, CI | Completed — implementation and local acceptance verified |
 | 02 | MongoDB + Mongoose Architecture, Database Migration & Data Integrity | Completed — implementation and local acceptance verified |
 | 03 | Authentication Backend | Completed — implementation and local acceptance verified |
-| 04 | Authentication Frontend, Protected Routing & User Experience | Next — not implemented |
-| 05 | Event Management Backend | Upcoming |
+| 04 | Authentication Frontend, Protected Routing & User Experience | Completed — implementation and local acceptance verified |
+| 05 | Event Management Backend | Next — not implemented |
 | 06 | Event Management Frontend | Upcoming |
 | 07 | Event Discovery | Upcoming |
 | 08 | Reservation Engine | Upcoming |
@@ -144,3 +144,45 @@ Secret/artifact hygiene, final remote commits, and CI conclusion are checked at
 delivery. Ongoing application use requires
 a persistent replica-set/Atlas URI, an actual generated JWT secret, and correct
 origin settings. Test infrastructure provisions none of those as production resources.
+
+## Task 04 acceptance record
+
+Verified on **October 26, 2026 (IST)** with Node.js 24.14.0 and npm 11.9.0:
+
+| Check | Observed result |
+| --- | --- |
+| Repository baseline | Verified origin/account, safely synchronized `main`; Task 03 baseline passed all 165 tests and quality gates |
+| Typed API client | Same-origin relative GET/POST JSON, public-user runtime validation, safe typed errors, Retry-After, cancellation, and timeouts |
+| Authentication state | Four explicit states, `/me` restoration/retry, mutation serialization, abort/generation protection, StrictMode/unmount coverage |
+| Forms | Actual login/registration responses, both roles, validation, password visibility, disabled pending controls, preserved failed inputs, accessible errors |
+| Route protection | Guests go to login after 401; initialization/unavailable gates hide private content; both wrong-role visits denied; return destinations allowlisted |
+| Dashboards/navigation | Actual account details, responsive auth-aware shell/logout, honest static upcoming modules, no fake business data |
+| Clean installation | `npm ci` passed: 439 installed packages, no reported vulnerabilities |
+| Frontend tests | 60 passing tests across 5 files with real provider/router/forms and mocked HTTP boundaries |
+| Backend regressions | All 165 existing tests across 6 files passed; backend implementation unchanged |
+| Complete quality gate | `npm run check` passed: lint with zero warnings, both TypeScript checks, 225 total tests across 11 files, both production builds |
+| Real attendee browser flow | Registration established session and opened attendee dashboard; reload restored it; login worked after logout |
+| Real organizer browser flow | Organizer selection registered the actual role, opened organizer dashboard, and survived reload |
+| Browser access control | Both cross-role visits denied; successful logout returned to public `/`; a later protected visit went to login |
+| Local Origin integration | Real browser POSTs through Vite at `http://localhost:5173` succeeded with exact trusted Origin; no JavaScript Origin override |
+| Responsive/accessibility checks | Desktop, 320px and 390px form/dashboard checks without horizontal overflow; compact menu and Escape/focus verified; no browser console warnings/errors observed |
+| Compiled application | New login/register/dashboard browser routes serve SPA HTML; auth lifecycle, revocation replay rejection, independent sessions, CSRF, and Secure/HttpOnly flags passed |
+| Failure isolation | Invalid JWT configuration and unavailable MongoDB return auth 503 while liveness/frontend remain 200 |
+| Secret/artifact hygiene | No frontend cookie/storage/token access; `.env`, builds, browser proof, and temporary preview helpers ignored/untracked |
+
+Manual testing used disposable `.test` accounts, an owned MongoDB 8.2.6 replica
+set, and an ephemeral signing key. The preview processes and owned replica set
+were stopped afterward. No production/shared data was used or cleaned.
+
+The implementation is split into five conventional commits covering API/state,
+forms, routes/dashboard/navigation, regression coverage, and documentation.
+Final remote head and the observed push-triggered CI conclusion are checked at
+delivery; current runs are available in
+[GitHub Actions](https://github.com/KaizokuHam/kairopass/actions/workflows/ci.yml).
+
+Persistent application use still requires an owned replica-set/Atlas database,
+a generated JWT secret, and correct origin/HTTPS settings. There is no proactive
+cross-tab synchronization, background session renewal, password reset, OAuth,
+or account-settings workflow. Dashboards remain account shells; event management,
+discovery, reservations, payments, ticketing, check-in, and analytics are future
+work. Task 05 is ready to begin when separately authorized and is not implemented here.

@@ -55,14 +55,36 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - Preserve per-IP registration/login limits. Proxy trust is false; deployment changes need an explicit trusted-proxy policy.
 - Missing/weak JWT secrets disable auth with 503; never add a fallback secret.
 - AuthSession-only TTL cleanup is allowed; reservation TTL deletion remains prohibited.
-- Task 04 must use relative API requests and restore state through `/api/auth/me`.
+- Use relative API requests and restore state through `/api/auth/me`.
   Do not store tokens in localStorage/sessionStorage or invent authenticated success states.
+
+## Authentication frontend (Task 04)
+
+- Reuse `AuthProvider`/`useAuth`, the existing typed API client, and auth route guards.
+- Keep INITIALIZING, AUTHENTICATED, UNAUTHENTICATED, and UNAVAILABLE distinct.
+  Only `/me` 401 confirms signed out; network/503 failures must not impersonate logout.
+- Preserve abort/generation handling for session reads and the account-mutation mutex.
+  Provider cleanup aborts requests; submitted mutations outlive form navigation.
+- Never expose cookies to JavaScript or persist identity/credentials in browser storage.
+- Wait for backend logout success before clearing user state and navigating to `/`.
+  Router transitions are disabled to preserve the tested logout navigation ordering.
+- Allowlist post-auth destinations by the actual returned role; reject external/other-role targets.
+- Frontend route guards are UX only. Protect future API resources with server auth,
+  persisted roles, and explicit ownership checks; current client role is not authority.
+- Develop at `http://localhost:5173`, matching exact `CLIENT_ORIGIN`; keep the Vite
+  `/api` proxy to `http://127.0.0.1:4000`. Do not weaken Origin security for host aliases.
+- Extend the shared auth layout, field/form components, and role-configured dashboard.
+  Upcoming modules stay clearly labeled without fake data or misleading dead controls.
+- Test with Vitest/RTL/user-event at the HTTP boundary, using real provider/router behavior.
+  Preserve accessible labels, error associations, keyboard menus, focus, and responsive layouts.
 
 ## Verification and Git
 
 - Use `npm ci` and `npm run check` (lint, types, all tests, both builds).
 - `npm run test:unit` needs no MongoDB process; `npm run test:db` owns its replica set.
 - `npm run test:auth` runs authentication unit and real HTTP/replica-set tests with ephemeral keys.
+- `npm run test:web` runs frontend tests; `npm test` and CI include both workspaces.
+- `npm run test:watch -w client` watches frontend tests; root `test:watch` watches backend tests.
 - Keep changes small and coherent; use conventional commits and the configured authorized Git identity.
 - Preserve existing work. Never fabricate/backdate commits, rewrite published history, or force-push.
 - Avoid unnecessary repository restructuring. Never commit secrets, binaries, dependencies, or build output.
@@ -72,7 +94,7 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 ## Remaining roadmap
 
 - 03 — Authentication Backend (implemented; see verification record)
-- 04 — Authentication Frontend
+- 04 — Authentication Frontend (implemented; see verification record)
 - 05 — Event Management Backend
 - 06 — Event Management Frontend
 - 07 — Event Discovery
@@ -85,5 +107,5 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - 14 — Production Release & Documentation
 
 Future tasks must continue using MongoDB/Mongoose. Implement only the task the
-user authorizes. Authentication frontend belongs to Task 04; booking/payment/
-ticket workflows remain later tasks and require their own authorization.
+user authorizes. Task 05 is Event Management Backend; booking/payment/ticket
+workflows remain later tasks and require their own authorization.

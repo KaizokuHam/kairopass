@@ -20,7 +20,9 @@ Production:  browser -> Express -> /api routes -> module services -> Mongoose ->
 - `client/src/components/ui`: accessible primitives, compatible with shadcn/ui conventions.
 - `client/src/hooks`: reusable request and interaction state.
 - `client/src/services`: typed HTTP abstraction; only relative `/api` requests.
-- `client/src/context` and `types`: future global state and shared client contracts.
+- `client/src/context`: in-memory authentication state and request coordination.
+- `client/src/types`: explicit client contracts for public users and API responses.
+- `client/src/components/auth`: form fields, session gate, logout, and reusable route guards.
 - `server/src/app.ts`: app factory and middleware wiring; imports never start a listener.
 - `server/src/server.ts`: process startup and shutdown only.
 - `server/src/config`: validated environment and centralized MongoDB lifecycle/readiness.
@@ -59,6 +61,48 @@ Unexpected errors must not expose stack traces or internal messages to clients.
 Every response gets a generated request ID. Request logs include method, path
 without query values, status, duration, and request ID; no request bodies,
 authorization headers, or cookies are logged.
+
+## Frontend authentication (Task 04)
+
+`BrowserRouter` wraps one `AuthProvider` and the existing `AppLayout`. The provider
+restores `/api/auth/me` on mount and exposes the public user, four-state session
+status, pending action, login/register/logout, and retry. `INITIALIZING` and
+`UNAVAILABLE` never render protected content; only `/me` 401 confirms
+`UNAUTHENTICATED`. Other failures retain the last known identity without granting
+access until a successful retry. There is no browser-storage persistence.
+
+An abort controller and generation number discard superseded session reads.
+Account mutations invalidate old reads and share a synchronous mutex. Provider
+cleanup aborts requests, including StrictMode's first development setup. A form
+unmount discards its local password state; a submitted mutation remains owned by
+the provider until it settles, since the server may already have set a cookie.
+
+The existing HTTP client supports GET/POST, same-origin credentials, JSON bodies,
+runtime response validation, timeouts, cancellation, and safe typed errors. Auth
+responses allow only public user fields. Status/code/request ID and Retry-After
+metadata are available to UI; raw backend exception messages are never displayed.
+
+Public-only login/register routes redirect verified users to their own dashboard.
+`ProtectedRoute` gates unresolved sessions and sends confirmed guests to login;
+`RoleGuard` renders an access-denied view for the other role. Return destinations
+are allowlisted to the verified role's local dashboard, with safe query/hash
+preservation. Frontend guards are navigation UX; server role/ownership checks
+remain mandatory for every future protected API resource.
+
+Routing uses `useTransitions={false}` so confirmed logout can navigate to `/`
+before clearing provider state triggers the former protected route's redirect.
+The navigation callback runs only after backend revocation succeeds. A failed
+logout leaves identity unverified and provides retry rather than claiming success.
+
+`AuthLayout`, shared form/field components, and one role-configured dashboard
+extend the established product shell. Dashboards display real name/email/role/
+creation date and honest, noninteractive upcoming modules. Mobile navigation has
+a labeled toggle, expanded state, Escape dismissal, and focus restoration.
+
+Local browser development uses **http://localhost:5173**, matching the exact
+`CLIENT_ORIGIN` default; the Vite script binds localhost and proxies `/api` to
+127.0.0.1:4000. Browser JavaScript sets neither Origin nor cookie headers.
+Production still serves client/API on one origin with Secure HTTP-only cookies.
 
 ## Persistence and data integrity
 
@@ -119,4 +163,9 @@ and CI gates. HTTP tests cover the middleware contract, liveness/readiness, and
 API/static route separation. Real MongoDB integration tests own a disposable
 replica set and verify indexes, validation, transaction commit/rollback, and safe
 connection behavior. They never consume or clean an application/Atlas database.
-The established Vite proxy and production single-origin client remain unchanged.
+Frontend Vitest/React Testing Library/user-event tests use jsdom and mock only
+the HTTP boundary. They cover forms, response contracts, races, role guards,
+unavailable recovery, and complete form-to-dashboard flows. `npm test` and CI
+run both workspaces; `npm run test:web` runs only the frontend suite. Real-browser
+integration uses disposable accounts and a separately owned MongoDB replica set.
+The established Vite proxy target and production single-origin client are preserved.
