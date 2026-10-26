@@ -62,6 +62,40 @@ describe('API foundation', () => {
     expect(response.body.error.code).toBe('PAYLOAD_TOO_LARGE');
   });
 
+  it.each(['charset', 'encoding'])('classifies unsupported request %s as a client media error', async (condition) => {
+    const pending = request(app).post('/api/auth/login')
+      .set('Content-Type', condition === 'charset' ? 'application/json; charset=iso-8859-1' : 'application/json');
+    if (condition === 'encoding') pending.set('Content-Encoding', 'unsupported');
+    const response = await pending.send('{}').expect(415);
+    expect(response.body.error.code).toBe('UNSUPPORTED_MEDIA_TYPE');
+    expect(response.body.error.requestId).toBe(response.headers['x-request-id']);
+    expect(response.headers['cache-control']).toBe('no-store');
+    await request(app).get('/api/health').expect(200);
+  });
+
+  it.each(['/api/events/%ZZ', '/api/organizer/events/%E0%A4%A', '/assets/%FF'])('rejects malformed URL encoding before routing (%s)', async (path) => {
+    const response = await request(app).get(path).expect(400);
+    expect(response.body.error.code).toBe('INVALID_URL');
+    expect(response.body.error.requestId).toBe(response.headers['x-request-id']);
+    expect(response.headers['cache-control']).toBe('no-store');
+    expect(response.body.error.message).not.toContain(path);
+  });
+
+  it('keeps unexpected exception text out of logs as well as HTTP responses', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const failingApp = express(); failingApp.use(requestLogger(true));
+    failingApp.get('/failure', () => { throw new Error('synthetic-private-diagnostic'); });
+    failingApp.use(errorHandler(false));
+    const response = await request(failingApp).get('/failure').expect(500);
+    expect(log).toHaveBeenCalledOnce();
+    expect(JSON.parse(String(log.mock.calls[0]?.[0]))).toEqual({
+      level: 'error', requestId: response.headers['x-request-id'], message: 'Unhandled request error'
+    });
+    expect(JSON.stringify(log.mock.calls)).not.toContain('synthetic-private-diagnostic');
+    expect(response.text).not.toContain('synthetic-private-diagnostic');
+    expect(response.headers['cache-control']).toBe('no-store');
+  });
+
   it('does not expose internal errors or stack traces', async () => {
     const failingApp = express();
     failingApp.use(requestLogger(true));

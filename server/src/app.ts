@@ -33,6 +33,12 @@ export function createApp(options: AppOptions = {}) {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     next();
   });
+  // Reject malformed percent/UTF-8 escapes before router/static decoders can
+  // misclassify URIError as an auth/database/internal failure.
+  app.use((req, _res, next) => {
+    try { decodeURI(req.path); next(); }
+    catch { next(new ApiError(400, 'INVALID_URL', 'The request URL is not correctly encoded.')); }
+  });
   if (mode === 'development') {
     app.use(cors({ origin: options.clientOrigin ?? env.CLIENT_ORIGIN, credentials: true }));
   }

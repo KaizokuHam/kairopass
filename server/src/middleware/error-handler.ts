@@ -22,6 +22,8 @@ export function errorHandler(silent: boolean): ErrorRequestHandler {
         failure = new ApiError(400, 'INVALID_JSON', 'Request body must contain valid JSON.');
       } else if (error.type === 'entity.too.large') {
         failure = new ApiError(413, 'PAYLOAD_TOO_LARGE', 'Request body exceeds the 32 KB limit.');
+      } else if (['charset.unsupported', 'encoding.unsupported'].includes(error.type)) {
+        failure = new ApiError(415, 'UNSUPPORTED_MEDIA_TYPE', 'The request encoding is not supported.');
       }
     }
 
@@ -29,11 +31,11 @@ export function errorHandler(silent: boolean): ErrorRequestHandler {
       console.error(JSON.stringify({
         level: 'error',
         requestId: res.locals.requestId,
-        message: 'Unhandled request error',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        message: 'Unhandled request error'
       }));
     }
 
+    res.setHeader('Cache-Control', 'no-store');
     res.status(failure?.status ?? 500).json({
       success: false,
       error: {
