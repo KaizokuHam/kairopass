@@ -10,9 +10,10 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:unit": "vitest run --exclude \"tests/*.integration.test.ts\"",
-    "test:db": "vitest run tests/database.integration.test.ts tests/auth.integration.test.ts tests/events",
+    "test:db": "vitest run tests/database.integration.test.ts tests/auth.integration.test.ts tests/events tests/discovery",
     "test:auth": "vitest run tests/auth",
     "test:events": "vitest run tests/events",
+    "test:discovery": "vitest run tests/discovery",
     "test:watch": "vitest"
   },
   "dependencies": {

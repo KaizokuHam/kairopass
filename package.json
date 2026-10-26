@@ -18,6 +18,7 @@
     "test:db": "npm run test:db -w server",
     "test:auth": "npm run test:auth -w server",
     "test:events": "npm run test:events -w server",
+    "test:discovery": "npm run test:discovery -w server",
     "test:watch": "npm run test:watch -w server",
     "typecheck": "npm run typecheck --workspaces",
     "lint": "eslint . --max-warnings 0",

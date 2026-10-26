@@ -52,4 +52,7 @@ eventSchema.pre('validate', function () {
 
 eventSchema.index({ organizerId: 1 }, { name: 'event_organizer' });
 eventSchema.index({ status: 1, startAt: 1 }, { name: 'event_discovery' });
+// Additive indexes: equality on status, deterministic public schedule/price ordering.
+eventSchema.index({ status: 1, startAt: 1, _id: 1 }, { name: 'event_public_schedule' });
+eventSchema.index({ status: 1, pricePaise: 1, startAt: 1, _id: 1 }, { name: 'event_public_price' });
 export const Event = model<EventRecord>('Event', eventSchema);

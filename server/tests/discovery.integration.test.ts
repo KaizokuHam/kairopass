@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Types } from 'mongoose';
+import mongoose from 'mongoose';
 import request from 'supertest';
 import { createApp } from '../src/app.js';
 import { Event } from '../src/models/index.js';
@@ -10,6 +11,98 @@ useDisposableDatabase();
 let app: EventsApp;
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(eventTime); app = eventsApp();
+});
+
+describe('server-side discovery queries', () => {
+  it.each(['q=cloud', 'q=CLOUD', 'q=%20cloud%20', 'q=bEngALuRu', 'venue=BENGALURU'])('searches persisted titles and venues, case-insensitively (%s)', async (query) => {
+    const match = await persist();
+    await persist({ title: 'Art After Hours', venue: 'Mumbai' });
+    await persist({ title: eventInput.title, status: 'DRAFT' });
+    await persist({ title: eventInput.title, status: 'CANCELLED' });
+    expect(ids(await request(app).get('/api/events?' + query).expect(200))).toEqual([match.id]);
+  });
+  it.each(['q', 'venue'])('treats regex syntax as a literal substring in %s', async (field) => {
+    const event = await persist({ title: 'Cloud [A.*] Workshop', venue: 'Room [A.*]' });
+    await persist({ title: 'Cloud ABC Workshop', venue: 'Room ABC' });
+    expect(ids(await request(app).get('/api/events').query({ [field]: '[a.*]' }).expect(200))).toEqual([event.id]);
+    expect(ids(await request(app).get('/api/events').query({ [field]: '.*' }).expect(200))).toEqual([event.id]);
+    expect(ids(await request(app).get('/api/events').query({ [field]: '$ne' }).expect(200))).toEqual([]);
+  });
+  it.each(['', 'q=', 'q=%20%20&venue=%20', 'price=all'])('treats an empty search/all price as unfiltered (%s)', async (query) => {
+    const event = await persist();
+    expect(ids(await request(app).get('/api/events?' + query).expect(200))).toEqual([event.id]);
+  });
+  it('filters free and paid events without rounding integer paise', async () => {
+    const free = await persist({ pricePaise: 0 }); const paid = await persist({ pricePaise: 1 });
+    expect(ids(await request(app).get('/api/events?price=free').expect(200))).toEqual([free.id]);
+    expect(ids(await request(app).get('/api/events?price=paid').expect(200))).toEqual([paid.id]);
+  });
+  it('uses inclusive ISO date boundaries, honors offsets, and combines all filters', async () => {
+    const match = await persist();
+    await persist({ pricePaise: 0 }); await persist({ venue: 'Mumbai' });
+    await persist({ startAt: '2040-03-10T10:00:00Z', endAt: '2040-03-10T13:00:00Z' });
+    const response = await request(app).get('/api/events').query({ q: 'Cloud', venue: 'Bengaluru', price: 'paid',
+      from: '2040-02-10T15:30:00+05:30', to: '2040-02-10T10:00:00Z' }).expect(200);
+    expect(ids(response)).toEqual([match.id]);
+    const outside = await request(app).get('/api/events').query({ to: '2040-02-10T09:59:59.999Z' }).expect(200);
+    expect(ids(outside)).toEqual([]);
+  });
+  it('does not allow an old from boundary to include past events', async () => {
+    await persist({ startAt: '2039-12-01T00:00:00Z', endAt: '2039-12-02T00:00:00Z', registrationDeadline: '2039-11-30T00:00:00Z' });
+    const upcoming = await persist();
+    expect(ids(await request(app).get('/api/events?from=2039-01-01T00:00:00Z').expect(200))).toEqual([upcoming.id]);
+  });
+  it('sorts soonest/latest and both price orders with stable date and ObjectId tie-breakers', async () => {
+    const first = await persist({ pricePaise: 500 });
+    const second = await persist({ pricePaise: 500 });
+    const later = await persist({ pricePaise: 0, startAt: '2040-02-11T10:00:00Z', endAt: '2040-02-11T13:00:00Z' });
+    for (const [sort, expected] of [
+      ['soonest', [first.id, second.id, later.id]], ['latest', [later.id, second.id, first.id]],
+      ['price_asc', [later.id, first.id, second.id]], ['price_desc', [second.id, first.id, later.id]]
+    ] as const) {
+      expect(ids(await request(app).get('/api/events?sort=' + sort).expect(200))).toEqual(expected);
+    }
+  });
+  it('counts all persisted matches, paginates on the server, and handles pages beyond the end', async () => {
+    const events = [];
+    for (let index = 0; index < 14; index++) events.push(await persist({ title: 'Persistent meetup ' + index }));
+    await persist({ title: 'Hidden meetup', status: 'DRAFT' });
+    const first = await request(app).get('/api/events?q=Persistent').expect(200);
+    expect(ids(first)).toEqual(events.slice(0, 12).map((event) => event.id));
+    expect(first.body.data.pagination).toEqual({ page: 1, limit: 12, total: 14, totalPages: 2 });
+    const second = await request(app).get('/api/events?q=Persistent&page=2').expect(200);
+    expect(ids(second)).toEqual(events.slice(12).map((event) => event.id));
+    const outside = await request(app).get('/api/events?q=Persistent&page=3').expect(200);
+    expect(ids(outside)).toEqual([]);
+    expect(outside.body.data.pagination).toEqual({ page: 3, limit: 12, total: 14, totalPages: 2 });
+    const bounded = await request(app).get('/api/events?limit=1&page=2').expect(200);
+    expect(ids(bounded)).toEqual([events[1]!.id]);
+  });
+  it.each(['page=0', 'page=-1', 'page=1.5', 'page=10001', 'page=01', 'page=1&page=2', 'limit=0', 'limit=51',
+    'limit=1e2', 'sort=popular', 'price=cheap', 'q=' + 'x'.repeat(121), 'venue=' + 'x'.repeat(201),
+    'q[$ne]=private', 'venue[$regex]=.*', 'status=DRAFT', 'organizerId=forged', 'q=a&q=b',
+    'from=2040-02-30T00:00:00Z', 'from=2040-02-10', 'from=2040-02-10T10:00:00', 'to=not-a-date',
+    'from=2040-03-01T00:00:00Z&to=2040-02-01T00:00:00Z'])('rejects malformed, unbounded, or injected query %s', async (query) => {
+    const response = await request(app).get('/api/events?' + query).expect(400);
+    expect(response.body.error.code).toBe('INVALID_DISCOVERY_QUERY');
+    expect(response.body.error.requestId).toBe(response.headers['x-request-id']);
+  });
+  it('verifies additive schedule and price indexes without removing the established index', async () => {
+    const indexes = await Event.collection.listIndexes().toArray();
+    expect(indexes.find((index) => index.name === 'event_discovery')?.key).toEqual({ status: 1, startAt: 1 });
+    expect(indexes.find((index) => index.name === 'event_public_schedule')?.key).toEqual({ status: 1, startAt: 1, _id: 1 });
+    expect(indexes.find((index) => index.name === 'event_public_price')?.key).toEqual({ status: 1, pricePaise: 1, startAt: 1, _id: 1 });
+  });
+  it('reports query timeouts and database failures as safe failures rather than empty results', async () => {
+    const timeout = vi.spyOn(Event, 'aggregate').mockImplementationOnce(() => { throw new mongoose.mongo.MongoServerError({ code: 50, message: 'private driver query' }); });
+    const response = await request(app).get('/api/events').expect(503);
+    expect(response.body.error.code).toBe('EVENT_QUERY_TIMEOUT');
+    expect(JSON.stringify(response.body)).not.toContain('private driver query'); timeout.mockRestore();
+    const unavailable = vi.spyOn(Event, 'findOne').mockImplementationOnce(() => { const error = new Error('mongodb://private:password@host'); error.name = 'MongoNetworkError'; throw error; });
+    const detail = await request(app).get('/api/events/' + '0'.repeat(24)).expect(503);
+    expect(detail.body.error.code).toBe('DATABASE_UNAVAILABLE');
+    expect(JSON.stringify(detail.body)).not.toContain('password'); unavailable.mockRestore();
+  });
 });
 afterEach(() => vi.useRealTimers());
 
