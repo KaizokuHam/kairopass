@@ -9,8 +9,9 @@
     "start": "node --env-file-if-exists=../.env dist/server.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:unit": "vitest run --exclude tests/database.integration.test.ts",
-    "test:db": "vitest run tests/database.integration.test.ts",
+    "test:unit": "vitest run --exclude tests/*.integration.test.ts",
+    "test:db": "vitest run tests/database.integration.test.ts tests/auth.integration.test.ts",
+    "test:auth": "vitest run tests/auth",
     "test:watch": "vitest"
   },
   "dependencies": {

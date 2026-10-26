@@ -1,6 +1,13 @@
 import { createApp } from './app.js';
 import { env } from './config/env.js';
 import { connectDatabase, disconnectDatabase } from './config/database.js';
+import { parseAuthEnvironment } from './config/auth.js';
+
+try {
+  parseAuthEnvironment(process.env);
+} catch {
+  console.error('Authentication unavailable: configure a strong JWT_SECRET and the required origin settings. See .env.example.');
+}
 
 const server = createApp().listen(env.PORT, env.HOST, () => {
   console.info(`KairoPass API listening at http://${env.HOST}:${env.PORT} (${env.NODE_ENV})`);

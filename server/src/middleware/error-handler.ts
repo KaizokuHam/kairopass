@@ -39,7 +39,8 @@ export function errorHandler(silent: boolean): ErrorRequestHandler {
       error: {
         code: failure?.code ?? 'INTERNAL_ERROR',
         message: failure?.message ?? 'An unexpected error occurred.',
-        requestId: res.locals.requestId
+        requestId: res.locals.requestId,
+        ...(failure?.details ? { details: failure.details } : {})
       }
     });
   };

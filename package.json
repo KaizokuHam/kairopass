@@ -15,6 +15,7 @@
     "test": "npm run test -w server",
     "test:unit": "npm run test:unit -w server",
     "test:db": "npm run test:db -w server",
+    "test:auth": "npm run test:auth -w server",
     "test:watch": "npm run test:watch -w server",
     "typecheck": "npm run typecheck --workspaces",
     "lint": "eslint . --max-warnings 0",

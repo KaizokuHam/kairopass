@@ -2,9 +2,18 @@ import { createHash, randomBytes } from 'node:crypto';
 import { SignJWT, jwtVerify } from 'jose';
 import type { CookieOptions } from 'express';
 import { z } from 'zod';
+import { parseCookie } from 'cookie';
 import type { AuthConfig } from '../../config/auth.js';
 
 export const SESSION_COOKIE_NAME = 'kairopass_session';
+
+export function readSessionCookie(header: string | undefined): string | undefined {
+  if (!header) return undefined;
+  // Ambiguous duplicate names can come from cookie tossing. Never pick one arbitrarily.
+  const matches = header.split(';').filter((part) => part.trim().split('=', 1)[0] === SESSION_COOKIE_NAME);
+  if (matches.length !== 1) return undefined;
+  return parseCookie(header)[SESSION_COOKIE_NAME];
+}
 const claimsSchema = z.object({
   sub: z.string().regex(/^[a-f0-9]{24}$/),
   jti: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
