@@ -21,7 +21,7 @@ function boundary(respond: (path: string, options: RequestInit) => Response | Pr
 }
 
 describe('public event details and navigation', () => {
-  it('displays real event fields and a disabled reservation control without writes or storage persistence', async () => {
+  it('displays real event fields and guest reservation sign-in without writes or storage persistence', async () => {
     const fetcher = boundary(), storage = vi.spyOn(Storage.prototype, 'setItem'); show();
     expect(await screen.findByRole('heading', { name: publicEvent.title })).toBeInTheDocument();
     expect(screen.getByText(publicEvent.description)).toBeInTheDocument();
@@ -29,8 +29,8 @@ describe('public event details and navigation', () => {
     expect(within(booking).getByText('₹199.00')).toBeInTheDocument();
     expect(within(booking).getByText('97')).toBeInTheDocument(); expect(within(booking).getByText('100')).toBeInTheDocument();
     expect(screen.getByText(/All times shown in/)).toBeInTheDocument();
-    const cta = screen.getByRole('button', { name: 'Reservations coming soon' }); expect(cta).toBeDisabled();
-    await userEvent.click(cta); expect(fetcher.mock.calls.every(([, options]) => options.method === 'GET')).toBe(true);
+    expect(screen.getByRole('link', { name: 'Sign in to Reserve' })).toHaveAttribute('href', '/login');
+    expect(fetcher.mock.calls.every(([, options]) => options.method === 'GET')).toBe(true);
     expect(storage).not.toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: /Book now|Reserve ticket/i })).not.toBeInTheDocument();
   });
@@ -64,7 +64,7 @@ describe('public event details and navigation', () => {
   ])('displays $label and never enables reservations', async ({ event, label }) => {
     boundary(() => publicDetail(event)); show(); await screen.findByRole('heading', { name: publicEvent.title });
     const booking = screen.getByRole('complementary', { name: 'Event availability' });
-    expect(within(booking).getByText(label)).toBeInTheDocument(); expect(within(booking).getByRole('button', { name: 'Reservations coming soon' })).toBeDisabled();
+    expect(within(booking).getByText(label)).toBeInTheDocument(); expect(within(booking).getByRole('button', { name: 'Reservations unavailable' })).toBeDisabled();
   });
   it('revalidates visibility when refreshing availability after cancellation', async () => {
     let cancelled = false; boundary(() => cancelled ? failure(404, 'EVENT_NOT_FOUND') : publicDetail()); show();

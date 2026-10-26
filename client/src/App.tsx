@@ -16,6 +16,9 @@ import { EditEventPage } from '@/pages/organizer/EditEventPage';
 import { OrganizerEventDetailsPage } from '@/pages/organizer/OrganizerEventDetailsPage';
 import { ExploreEventsPage } from '@/pages/ExploreEventsPage';
 import { PublicEventDetailsPage } from '@/pages/PublicEventDetailsPage';
+import { AttendeeLayout } from '@/layouts/AttendeeLayout';
+import { MyReservationsPage } from '@/pages/attendee/MyReservationsPage';
+import { ReservationDetailsPage } from '@/pages/attendee/ReservationDetailsPage';
 
 export function App() {
   return (
@@ -27,7 +30,9 @@ export function App() {
         <Route path="events/:id" element={<PublicEventDetailsPage />} />
         <Route element={<PublicOnlyRoute />}><Route path="login" element={<LoginPage />} /><Route path="register" element={<RegisterPage />} /></Route>
         <Route element={<ProtectedRoute />}>
-          <Route element={<RoleGuard role="ATTENDEE" />}><Route path="attendee/dashboard" element={<DashboardPage role="ATTENDEE" />} /></Route>
+          <Route element={<RoleGuard role="ATTENDEE" />}><Route path="attendee/dashboard" element={<DashboardPage role="ATTENDEE" />} />
+            <Route path="attendee/reservations" element={<AttendeeLayout />}><Route index element={<MyReservationsPage />} /><Route path=":id" element={<ReservationDetailsPage />} /></Route>
+          </Route>
           <Route element={<RoleGuard role="ORGANIZER" />}><Route path="organizer/dashboard" element={<DashboardPage role="ORGANIZER" />} />
             <Route path="organizer/events" element={<OrganizerLayout />}><Route index element={<OrganizerEventsPage />} /><Route path="new" element={<CreateEventPage />} />
               <Route path=":id" element={<OrganizerEventDetailsPage />} /><Route path=":id/edit" element={<EditEventPage />} /></Route>

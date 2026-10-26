@@ -7,6 +7,7 @@ import { usePublicEvent } from '@/hooks/usePublicEvents';
 import { useAvailabilityClock } from '@/hooks/useAvailabilityClock';
 import { formatEventDate, formatPrice, localTimezone } from '@/lib/event-format';
 import { discoveryQueryString, parseDiscoverySearch } from '@/lib/discovery-query';
+import { ReserveButton } from '@/components/reservations/ReserveButton';
 
 export function PublicEventDetailsPage() {
   const { id = '' } = useParams(), [params] = useSearchParams();
@@ -23,7 +24,7 @@ export function PublicEventDetailsPage() {
         </section></div>
         <aside className="public-event-booking" aria-label="Event availability"><span className="public-event-ticket"><Ticket size={22} strokeWidth={1.4} aria-hidden="true" /></span><p className="eyebrow">{event.pricePaise === 0 ? 'FREE EVENT' : 'TICKET PRICE'}</p><p className="public-event-price">{formatPrice(event.pricePaise)}</p><p className="public-event-price-note">{event.pricePaise === 0 ? 'A good experience, open to all.' : 'per ticket · INR'}</p>
           <div className="public-event-inventory"><Users size={17} aria-hidden="true" /><dl><div><dt>Remaining capacity</dt><dd>{event.capacity - event.reservedCount}</dd></div><div><dt>Total capacity</dt><dd>{event.capacity}</dd></div></dl></div>
-          <EventAvailability event={event} now={now} /><Button disabled className="public-event-reserve">Reservations coming soon</Button><p className="public-event-booking-note">Reservations aren’t available yet. Displayed availability is an inventory snapshot; a future booking request will check it again.</p><Button variant="ghost" onClick={resource.reload}><RefreshCw size={14} />Refresh availability</Button>
+          <EventAvailability event={event} now={now} /><ReserveButton event={event} now={now} refresh={resource.reload} /><Button variant="ghost" onClick={resource.reload}><RefreshCw size={14} />Refresh availability</Button>
         </aside>
       </div>
     </>}

@@ -3,8 +3,8 @@ import { createPortal } from 'react-dom';
 import { LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export function ConfirmActionDialog({ title, children, confirmLabel, pending, blocked = false, danger = false, close, confirm }: {
-  title: string; children: ReactNode; confirmLabel: string; pending: boolean; blocked?: boolean; danger?: boolean; close: () => void; confirm: () => void;
+export function ConfirmActionDialog({ title, children, confirmLabel, dismissLabel, pending, blocked = false, danger = false, close, confirm }: {
+  title: string; children: ReactNode; confirmLabel: string; dismissLabel?: string; pending: boolean; blocked?: boolean; danger?: boolean; close: () => void; confirm: () => void;
 }) {
   const titleId = useId(); const descriptionId = useId();
   const dialog = useRef<HTMLDivElement>(null); const back = useRef<HTMLButtonElement>(null);
@@ -34,7 +34,7 @@ export function ConfirmActionDialog({ title, children, confirmLabel, pending, bl
   }, [pending, close]);
   return createPortal(<div className="event-dialog-backdrop"><div ref={dialog} className="event-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={descriptionId} tabIndex={-1} aria-busy={pending}>
     <p className="eyebrow">{danger ? 'TAKE A MOMENT' : 'READY FOR WHAT’S NEXT'}</p><h2 id={titleId}>{title}</h2><div id={descriptionId}>{children}</div>
-    <div className="event-dialog-actions"><Button ref={back} variant="ghost" disabled={pending} onClick={close}>{danger ? 'Keep event' : 'Keep editing'}</Button>
+    <div className="event-dialog-actions"><Button ref={back} variant="ghost" disabled={pending} onClick={close}>{dismissLabel ?? (danger ? 'Keep event' : 'Keep editing')}</Button>
       <Button className={danger ? 'button-danger' : ''} disabled={pending || blocked} onClick={confirm}>{pending ? <><LoaderCircle size={15} className="spin" />Confirming…</> : confirmLabel}</Button></div>
   </div></div>, document.body);
 }
