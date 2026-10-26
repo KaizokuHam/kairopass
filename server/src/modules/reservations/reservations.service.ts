@@ -7,6 +7,9 @@ import { assertEventInventory, expireEventHolds, HOLD_DURATION_MS, inventoryInco
 import { reservationEventProjection, toAttendeeReservation, type AttendeeReservation } from './reservations.mapper.js';
 import type { ListReservationsInput } from './reservations.validation.js';
 
+// Internal session-aware contracts shared with payment confirmation; never call controllers.
+export { account as requireAttendeeAccount, owned as ownedReservation, mapped as mapReservation, reconcileOwned as reconcileOwnedReservation };
+
 const notFound = () => new ApiError(404, 'RESERVATION_NOT_FOUND', 'Reservation not found.');
 const conflict = (code: string, message: string) => new ApiError(409, code, message);
 async function account(userId: string, session: ClientSession) {
