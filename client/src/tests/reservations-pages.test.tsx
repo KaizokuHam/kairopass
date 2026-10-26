@@ -13,6 +13,7 @@ import { attendee, deferred, failure, json, organizer, userResponse } from './fi
 import { publicDetail, publicEvent } from './discovery-fixtures';
 import { held, reservationList, reservationResponse, serverNow } from './reservations-fixtures';
 import type { ReservationStatus } from '@/types/reservations';
+import { paymentHistory } from './payments-fixtures';
 
 const details = '/attendee/reservations/' + held.id;
 function Probe() {
@@ -23,9 +24,16 @@ function show(path = '/events/' + held.eventId) {
   return render(<MemoryRouter useTransitions={false} initialEntries={[path]}><AuthProvider><App /><Probe /></AuthProvider></MemoryRouter>);
 }
 function boundary(respond: (path: string, options: RequestInit) => Response | Promise<Response> = () => reservationResponse(), auth: () => Response | Promise<Response> = () => userResponse()) {
-  const fetcher = vi.fn((path: string, options: RequestInit) => Promise.resolve(path === '/api/auth/me' ? auth()
-    : path === '/api/health' ? json({ success: true, message: 'KairoPass API is running' })
-      : path.startsWith('/api/events/') ? publicDetail() : respond(path, options)));
+  let currentReservation = held;
+  const fetcher = vi.fn(async (path: string, options: RequestInit) => {
+    if (path === '/api/auth/me') return auth();
+    if (path === '/api/health') return json({ success: true, message: 'KairoPass API is running' });
+    if (path.startsWith('/api/events/')) return publicDetail();
+    if (/\/payments\?/.test(path)) return paymentHistory([], {}, currentReservation);
+    const response = await respond(path, options);
+    if (response.ok) { const body = await response.clone().json(); if (body?.data?.reservation) currentReservation = body.data.reservation; }
+    return response;
+  });
   vi.stubGlobal('fetch', fetcher); return fetcher;
 }
 
@@ -49,7 +57,7 @@ describe('real reserve action', () => {
     await act(async () => pending.resolve(reservationResponse(held, serverNow, 201)));
     expect(await screen.findByText('Awaiting Payment')).toBeInTheDocument();
     expect(screen.getByLabelText('Current address')).toHaveTextContent(details);
-    expect(screen.getByText('Payment processing will be available in the next milestone.')).toBeInTheDocument();
+    expect(screen.getByText(/Complete a simulated checkout below/)).toBeInTheDocument();
     expect(screen.queryByText(/Ticket booked|Payment successful/)).not.toBeInTheDocument();
   });
   it('shows the organizer restriction and never submits a booking', async () => {
@@ -124,7 +132,7 @@ describe('owned reservation list and details', () => {
   ] as [ReservationStatus, string][])('restores %s details from the API on direct navigation', async (status, label) => {
     boundary(() => reservationResponse({ ...held, status })); show(details);
     expect(await screen.findByText(label)).toBeInTheDocument();
-    expect(screen.getByText(held.id)).toBeInTheDocument(); expect(screen.getByText('₹199.00')).toBeInTheDocument();
+    expect(screen.getByText(held.id)).toBeInTheDocument(); expect(screen.getByText('₹199.00', { selector: 'dd' })).toBeInTheDocument();
     if (status !== 'HELD') { expect(screen.queryByRole('timer')).not.toBeInTheDocument(); expect(screen.queryByRole('button', { name: 'Cancel hold' })).not.toBeInTheDocument(); }
     else { expect(screen.getByRole('timer')).toHaveTextContent('10:00'); expect(screen.queryByRole('button', { name: /Pay Now/ })).not.toBeInTheDocument(); }
   });

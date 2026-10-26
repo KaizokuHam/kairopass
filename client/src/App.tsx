@@ -19,10 +19,11 @@ import { PublicEventDetailsPage } from '@/pages/PublicEventDetailsPage';
 import { AttendeeLayout } from '@/layouts/AttendeeLayout';
 import { MyReservationsPage } from '@/pages/attendee/MyReservationsPage';
 import { ReservationDetailsPage } from '@/pages/attendee/ReservationDetailsPage';
+import { PaymentRecoveryProvider } from '@/context/PaymentRecoveryProvider';
 
 export function App() {
   return (
-    <Routes>
+    <PaymentRecoveryProvider><Routes>
       <Route element={<AppLayout />}>
         <Route index element={<HomePage />} />
         <Route path="vision" element={<VisionPage />} />
@@ -40,6 +41,6 @@ export function App() {
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Route>
-    </Routes>
+    </Routes></PaymentRecoveryProvider>
   );
 }
