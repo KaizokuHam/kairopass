@@ -3,7 +3,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { AuthProvider } from '@/context/AuthProvider';
 import { useAuth } from '@/hooks/useAuth';
-import { attendee, deferred, failure, json, userResponse } from './fixtures';
+import { attendee, deferred, failure, json, organizer, userResponse } from './fixtures';
 
 const wrapper = ({ children }: { children: ReactNode }) => <AuthProvider>{children}</AuthProvider>;
 const credentials = { email: attendee.email, password: 'Test-only password' };
@@ -52,6 +52,43 @@ describe('race-safe authentication state', () => {
     await act(async () => { logout.resolve(json({ success: true, message: 'Logged out successfully.' })); await pending; old.resolve(userResponse()); await refresh; });
     expect(result.current.status).toBe('UNAUTHENTICATED');
     expect(result.current.user).toBeNull();
+  });
+
+  it('does not let stale restoration overwrite a newly registered organizer', async () => {
+    const old = deferred<Response>();
+    vi.stubGlobal('fetch', vi.fn().mockReturnValueOnce(old.promise).mockResolvedValueOnce(userResponse(organizer)));
+    const { result } = renderHook(useAuth, { wrapper });
+    await act(() => result.current.register({ ...credentials, name: organizer.name, role: 'ORGANIZER' }));
+    await act(async () => { old.resolve(userResponse(attendee)); });
+    expect(result.current.user).toEqual(organizer);
+    expect(result.current.status).toBe('AUTHENTICATED');
+  });
+
+  it('accepts only the latest concurrent refresh and recovers from a network failure', async () => {
+    const old = deferred<Response>();
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValueOnce(new TypeError('offline')).mockReturnValueOnce(old.promise).mockResolvedValueOnce(userResponse()));
+    const { result } = renderHook(useAuth, { wrapper });
+    await waitFor(() => expect(result.current.status).toBe('UNAVAILABLE'));
+    let refresh!: Promise<void>;
+    act(() => { refresh = result.current.refreshSession(); });
+    await act(() => result.current.refreshSession());
+    await act(async () => { old.resolve(failure(401)); await refresh; });
+    expect(result.current.status).toBe('AUTHENTICATED');
+    expect(result.current.user).toEqual(attendee);
+  });
+
+  it('aborts an in-flight mutation when its provider unmounts', async () => {
+    const pending = deferred<Response>();
+    const fetcher = vi.fn().mockResolvedValueOnce(failure(401)).mockReturnValueOnce(pending.promise);
+    vi.stubGlobal('fetch', fetcher);
+    const { result, unmount } = renderHook(useAuth, { wrapper });
+    await waitFor(() => expect(result.current.status).toBe('UNAUTHENTICATED'));
+    let login!: Promise<unknown>;
+    act(() => { login = result.current.login(credentials); });
+    const rejected = expect(login).rejects.toMatchObject({ code: 'CANCELLED' });
+    unmount();
+    expect(fetcher.mock.calls.at(-1)?.[1].signal.aborted).toBe(true);
+    await act(async () => { pending.resolve(userResponse()); await rejected; });
   });
 
   it('serializes mutations and does not pretend logout succeeded when offline', async () => {

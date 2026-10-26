@@ -35,7 +35,7 @@ jobs:
         run: npm run lint
       - name: Type-check both workspaces
         run: npm run typecheck
-      - name: Run HTTP and disposable replica-set database tests
+      - name: Run frontend, HTTP, and disposable replica-set database tests
         run: npm test
       - name: Build client and server
         run: npm run build

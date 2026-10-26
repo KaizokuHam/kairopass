@@ -69,13 +69,48 @@ describe('protected routes and role-aware navigation', () => {
   it('returns to the public page after confirmed logout and blocks a subsequent protected visit', async () => {
     let signedIn = true;
     const fetcher = boundary(() => signedIn ? userResponse() : failure(401));
-    show('/attendee/dashboard');
+    const view = show('/attendee/dashboard');
     await screen.findByText(attendee.email);
     signedIn = false;
     await userEvent.click(screen.getByRole('button', { name: 'Sign out' }));
     expect(await screen.findByRole('heading', { name: /Your next/ })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Sign in' })).toBeInTheDocument();
     expect(fetcher.mock.calls.some(([path]) => path === '/api/auth/logout')).toBe(true);
+    view.unmount();
+    show('/attendee/dashboard');
+    expect(await screen.findByRole('heading', { name: 'Welcome back.' })).toBeInTheDocument();
+  });
+
+  it.each([attendee, organizer])('registers $role through the complete application and renders the actual account', async (account) => {
+    const fetcher = vi.fn((path: string) => Promise.resolve(path === '/api/health'
+      ? json({ success: true, message: 'KairoPass API is running' })
+      : path === '/api/auth/me' ? failure(401) : userResponse(account)));
+    vi.stubGlobal('fetch', fetcher);
+    show('/register');
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText('Full name'), account.name);
+    await user.type(screen.getByLabelText('Email address'), account.email);
+    await user.type(screen.getByLabelText('Password'), 'Test-only password');
+    await user.type(screen.getByLabelText('Confirm password'), 'Test-only password');
+    if (account.role === 'ORGANIZER') await user.click(screen.getByRole('radio', { name: /Organizer/ }));
+    await user.click(screen.getByRole('button', { name: 'Create account' }));
+    expect(await screen.findByRole('heading', { name: `Welcome, ${account.name}.` })).toBeInTheDocument();
+    expect(screen.getByText(account.email)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', `/${account.role.toLowerCase()}/dashboard`);
+    expect(fetcher.mock.calls.filter(([path]) => path === '/api/auth/register')).toHaveLength(1);
+    expect(fetcher.mock.calls.some(([path]) => path === '/api/auth/login')).toBe(false);
+  });
+
+  it('keeps a failed logout behind a recoverable gate without claiming revocation', async () => {
+    vi.stubGlobal('fetch', vi.fn((path: string) => Promise.resolve(path === '/api/health'
+      ? json({ success: true, message: 'KairoPass API is running' })
+      : path === '/api/auth/logout' ? failure(503) : userResponse())));
+    show('/attendee/dashboard');
+    await screen.findByText(attendee.email);
+    await userEvent.click(screen.getByRole('button', { name: 'Sign out' }));
+    expect(await screen.findByRole('heading', { name: 'Let’s reconnect.' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /Your next/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Your account' })).not.toBeInTheDocument();
   });
 
   it('keeps public pages accessible and operates compact navigation with Escape', async () => {

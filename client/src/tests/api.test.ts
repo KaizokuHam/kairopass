@@ -15,7 +15,7 @@ describe('typed same-origin API client', () => {
     expect(fetcher.mock.calls[1]?.[1].headers).not.toHaveProperty('Authorization');
   });
 
-  it.each([400, 401, 403, 409, 429, 503])('preserves status/code and hides raw messages for HTTP %s', async (status) => {
+  it.each([400, 401, 403, 409, 422, 429, 503])('preserves status/code and hides raw messages for HTTP %s', async (status) => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(failure(status, status === 401 ? 'INVALID_CREDENTIALS' : 'REQUEST_FAILED')));
     try { await authApi.me(new AbortController().signal); throw new Error('Expected request failure'); }
     catch (error) {
