@@ -36,13 +36,16 @@ The implemented auth module owns routes, controllers, services, Zod validation,
 token/password utilities, and typed authenticated request context. The events
 module owns private organizer event management; discovery owns public upcoming
 listing/detail reads and their strict query/public-DTO boundary. Reservations owns
-attendee allocation/history/cancellation and transactional expiry. Future modules are
-payments, tickets/check-in, and analytics. Each owns its router, Zod request validation, service rules,
+attendee allocation/history/cancellation and transactional expiry. Payments owns
+two-stage simulated checkout, idempotency, owned history and atomic confirmation.
+Future modules are tickets/check-in and analytics. Each owns its router, Zod request validation, service rules,
 and persistence operations. Routes should translate HTTP; services should enforce
 business invariants. Modules will call explicit service contracts instead of
 reaching into each other's controllers. Task 03 adds only the four `/api/auth`
 endpoints; Task 05 adds `/api/organizer/events`; Task 07 adds `/api/events`;
-Task 08 adds `/api/reservations`. Payment and ticket controllers remain later work.
+Task 08 adds `/api/reservations`; Task 09 adds nested `/:id/payments` routes.
+Ticket controllers remain later work. [Payments](payments.md) uses the existing
+connection, session/Origin/role guards and reservation inventory primitives.
 See [reservation transaction and worker contracts](reservations.md).
 
 ## Deployment and API
@@ -214,9 +217,9 @@ validation cannot protect every query update or cross-document invariant.
 Task 08 allocates/releases inventory with conditional event updates and MongoDB
 transactions. `reservedCount` tracks HELD + CONFIRMED allocations. Expiration
 transitions elapsed holds explicitly and decrements capacity exactly once; no TTL
-deletes reservation history. Task 09 will confirm simulated payment/reservation
+deletes reservation history. Task 09 confirms simulated payment/reservation
 states atomically; Tasks 10/11 will issue one ticket and conditionally consume it
-once. Payment/ticket workflows remain planned. See [reservations.md](reservations.md)
+once. Ticket workflows remain planned. See [reservations.md](reservations.md)
 for implemented transaction deadlines, recovery, worker lifecycle and attendee UX.
 
 See [database architecture](database.md) for complete fields/indexes, model limits,
@@ -242,8 +245,8 @@ auth endpoints fail closed with 503. See [authentication](authentication.md).
 
 Role checks alone do not establish resource ownership; future services must
 validate organizer ownership separately. QR tickets will require signed
-payloads and replay-safe, atomic check-in. Simulated payments will use durable
-state transitions and idempotency; they will never collect real card data.
+payloads and replay-safe, atomic check-in. Simulated payments use durable
+state transitions and idempotency; they never collect real card data.
 
 Configuration comes from the root `.env` or process environment; process values
 take precedence. `MONGODB_URI` is required for database readiness, but not liveness.

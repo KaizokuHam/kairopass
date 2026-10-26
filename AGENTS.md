@@ -179,6 +179,28 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - `npm run test:reservations` owns a disposable replica set; CI/full tests include
   real 20-request capacity/duplicate races, exactly-once release and rollback checks.
 
+## Simulated payment contract (Task 09)
+
+- Read `docs/payments.md` before changing checkout, confirmations or implementing Task 10.
+- Reuse `modules/payments`, existing session-aware reservation services and the one
+  connection. No real gateway, money collection or financial credentials.
+- Persist PENDING before finalization; every new request binds its immutable outcome,
+  reservation amount and UUID v4 key. Preserve existing unique indexes and history.
+- Same key/request replays its durable attempt; different outcome conflicts. A real
+  failed retry gets a new key. Unknown responses retain the original key/outcome.
+- Only a conditional valid HELD -> CONFIRMED transition may commit a corresponding
+  SUCCESS. Commit both together; never change the unit, price or original deadline.
+- Preserve fresh app-time and MongoDB $$NOW deadline predicates, event checks,
+  bounded retries and serial transaction operations. Never confirm EXPIRED/CANCELLED.
+- New Task 09 PENDING attempts must remain resumable, including finalizing as FAILED
+  after expiry/cancellation/competing confirmation. No guessed terminal outcomes.
+- Keep payment DTOs owner-scoped, history bounded, errors safe and POSTs Origin guarded.
+- Frontend keys stay in the memory-only recovery provider across navigation, clear
+  on logout/account change, and never enter browser storage. Check status/same-key
+  resume on interruption; do not convert network errors into simulated declines.
+- Task 10 must issue at most one QR ticket per genuinely CONFIRMED reservation,
+  verify durable confirmation/payment evidence, and preserve ticket uniqueness.
+
 ## Verification and Git
 
 - Read `docs/rubric-audit.md` for the Task 07.5 findings and future integration/deployment risks.
@@ -198,6 +220,7 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - `npm run test:events` runs event integration suites; `test:db` also includes them.
 - `npm run test:discovery` runs public visibility/query integrations; `test:db` includes them.
 - `npm run test:reservations` runs reservation HTTP/replica-set races, expiry and history; `test:db` includes it.
+- `npm run test:payments` runs real idempotency/pending/confirmation/race cases; `test:db` includes it.
 - `npm run test:web` runs frontend tests; `npm test` and CI include both workspaces.
 - `npm run test:watch -w client` watches frontend tests; root `test:watch` watches backend tests.
 - Keep changes small and coherent; use conventional commits and the configured authorized Git identity.
@@ -214,7 +237,7 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - 06 — Event Management Frontend (implemented; see verification record)
 - 07 — Event Discovery (implemented; see verification record)
 - 08 — Reservation Engine (implemented; see verification record)
-- 09 — Simulated Payment Gateway
+- 09 — Simulated Payment Gateway (implemented; see verification record)
 - 10 — QR Ticketing
 - 11 — Ticket Check-In
 - 12 — Organizer Analytics
@@ -222,5 +245,5 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - 14 — Production Release & Documentation
 
 Future tasks must continue using MongoDB/Mongoose. Implement only the task the
-user authorizes. Tasks 07 discovery and 08 reservations are implemented. Task 09
-payment/confirmation is the next milestone and requires separate authorization.
+user authorizes. Tasks 07 discovery, 08 reservations and 09 simulated payments are
+implemented. Task 10 QR ticketing is next and requires separate authorization.

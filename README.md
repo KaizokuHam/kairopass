@@ -23,7 +23,8 @@ guests, and understand attendance.
 
 Payments will be simulated. No real card processing or real payment collection
 is planned. Public discovery and ten-minute ticket reservations are available.
-Payment processing, confirmation, and digital tickets remain upcoming after Task 08.
+Simulated checkout and durable reservation confirmation are available. No real
+money is collected. Digital ticket issuance remains the next milestone.
 
 ## Stack and architecture
 
@@ -79,6 +80,7 @@ The `/api` proxy continues to target `http://127.0.0.1:4000`.
 | `npm run test:events` | Run event ownership, validation, lifecycle, and concurrency integration tests |
 | `npm run test:discovery` | Run public visibility, search, filtering, and pagination integration tests |
 | `npm run test:reservations` | Run real allocation, expiry, cancellation, ownership, and concurrency tests |
+| `npm run test:payments` | Run real simulated-payment idempotency, pending recovery, confirmation and race tests |
 | `npm run test:watch` | Run backend tests in watch mode |
 | `npm run build` | Compile client and server |
 | `npm run check` | Run lint, type checks, tests, and builds |
@@ -149,6 +151,7 @@ MongoDB deployment; the liveness endpoint remains independent.
 │   │   ├── modules/events/     # Private organizer event management, lifecycle, and DTOs
 │   │   ├── modules/discovery/  # Public upcoming-event search, filtering, pagination, and safe DTOs
 │   │   ├── modules/reservations/ # Atomic holds, owned history, cancellation and expiry worker
+│   │   ├── modules/payments/   # Persisted simulated checkout, idempotency, history and atomic confirmation
 │   │   ├── models/             # Five business models plus AuthSession and verified indexes
 │   │   ├── types/              # Public response DTOs
 │   │   ├── middleware/         # Logging, errors, API 404
@@ -236,15 +239,17 @@ does not read cookies or use browser storage. See the
 
 ## Implementation status
 
-**Current milestone: Task 08 implemented.** Attendees can reserve one ticket for
-ten minutes, view retained history, and cancel a valid hold. MongoDB transactions
-allocate/release capacity atomically, an explicit minute worker and lazy cleanup
-expire holds, and duplicate requests return the original valid hold. Every new
-reservation remains HELD, including free events. No payment or ticket is created.
-See [reservation APIs, invariants and recovery](docs/reservations.md) and the
-[Task 08 acceptance record](docs/implementation-plan.md#task-08-acceptance-record).
-The local quality gate passes **612 tests / 27 files** (244 frontend, 368 backend),
-lint, strict types and both builds. Earlier milestone records below are historical.
+**Current milestone: Task 09 implemented.** Attendees can reserve one ticket for
+ten minutes, run a clearly labelled simulated success/failure checkout, retry a
+failed attempt, and view retained reservation/payment history. No money is collected.
+Idempotency keys bind immutable requests; PENDING attempts survive interruptions;
+successful payment and HELD → CONFIRMED commit atomically without reallocating inventory.
+Free holds use explicit zero-value confirmation. Digital tickets remain Task 10.
+See [payment architecture and recovery](docs/payments.md),
+[reservation invariants](docs/reservations.md), and the
+[Task 09 acceptance record](docs/implementation-plan.md#task-09-acceptance-record).
+The quality gate passes **706 tests / 30 files** (283 frontend, 423 backend), lint,
+strict types and both builds. Earlier milestone records below are historical.
 
 Tasks 01–02 establish the application and MongoDB foundation. Task 03 adds the
 four authentication endpoints, Argon2id passwords, revocable JWT sessions,
@@ -301,7 +306,8 @@ attendee access, queries/pagination, and responsive layouts. Compiled-server che
 also verify public access without JWT configuration and safe database failures.
 
 Task 08 adds reservation orchestration, atomic inventory and expiring holds.
-Simulated checkout, QR generation, check-in, and analytics remain upcoming.
+Task 09 adds simulated checkout and atomic confirmation. QR generation, check-in,
+and analytics remain upcoming.
 Displayed public capacity never guarantees allocation.
 [AGENTS.md](AGENTS.md) records the permanent stack and
 engineering rules for future sessions.

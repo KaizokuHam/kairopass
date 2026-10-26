@@ -21,8 +21,8 @@ Submission deadline: **October 27, 2026, 11:59 PM IST**.
 | 07 | Event Discovery | Completed — implementation and local acceptance verified |
 | 07.5 | Mid-project engineering and rubric audit | Completed — see rubric-audit.md for findings and verification |
 | 08 | Reservation Engine | Completed — implementation and local acceptance verified |
-| 09 | Simulated Payment Gateway | Next — not implemented |
-| 10 | QR Ticketing | Upcoming |
+| 09 | Simulated Payment Gateway | Completed — implementation and local acceptance verified |
+| 10 | QR Ticketing | Next — not implemented |
 | 11 | Ticket Check-In | Upcoming |
 | 12 | Organizer Analytics | Upcoming |
 | 13 | Integration Testing & Hardening | Upcoming |
@@ -392,3 +392,63 @@ Ready for **Task 09/14 — Simulated Payment Gateway, Idempotency, Payment Retri
 Reservation Confirmation** when separately authorized. It must require HELD and
 expiresAt > server now, retain the allocated unit/price/original deadline, and race
 transactionally with expiry/cancellation. See [the reservation contract](reservations.md).
+
+## Task 09 acceptance record
+
+Verified on **October 26, 2026 (Asia/Calcutta)** with Node.js 24.14.0/npm 11.9.0.
+This record supersedes earlier forward-looking payment placeholders.
+
+| Check | Observed result |
+| --- | --- |
+| Prerequisite/repository | KaizokuHam identity/remote verified; clean main safely synchronized at 1c0c78d; completed Task 08 and exact-revision CI success confirmed |
+| Clean-install baseline | npm ci installed 439 packages, audited 442, zero vulnerabilities; all 612 prior tests, lint/types/builds passed |
+| Persisted model | Optional immutable requested outcome and terminal completion time; existing unique indexes retained; additive stable history index verified; no new dependencies |
+| API/security | Three nested attendee-only payment APIs; owned parent/attempt lookups, current role/account checks, exact POST Origin, UUID v4 keys, strict bodies/queries, safe DTO/error envelope and no-store |
+| Two-stage processing | PENDING commits before finalization; stored outcome/key/amount drive deterministic recovery; transaction IDs are backend-generated and stable |
+| Atomic confirmation | SUCCESS + conditional unexpired HELD to CONFIRMED commit together; Event eligibility/version write serializes state changes; fresh app time and MongoDB $$NOW guard final transitions |
+| Inventory | Confirmation leaves the original reserved unit, price and expiry unchanged; same-snapshot assertions verify counter == HELD+CONFIRMED and matching successful payment evidence |
+| Same key / 20 concurrent requests | All 20 returned 200 with one payment ID/transaction ID; exactly one SUCCESS record, one CONFIRMED reservation and reservedCount 1 |
+| Different keys / 20 requests | Exactly one successful attempt and confirmation; competitors failed or received 409; no PENDING leftovers or additional allocation |
+| Conflicting key reuse/replay | Changing the original outcome returned 409; successful replay kept ID/transaction/amount/terminal metadata unchanged; failed replay remained FAILED even after another attempt confirmed |
+| Payment versus expiry | Paused real payment transaction lost to expiry and ended FAILED/EXPIRED with counter 0; payment completed before expiry remained CONFIRMED and later cleanup was a no-op |
+| Payment versus cancellation | One legal terminal winner; conditional assertions verified either CONFIRMED with one successful attempt/unit or CANCELLED with no success and counter 0 |
+| Failed retry | First record remained FAILED and hold remained HELD; new-key second attempt became SUCCESS/CONFIRMED; both records retained, one unit |
+| Rollback | Forced failure after tentative payment SUCCESS left one durable PENDING attempt, HELD reservation, zero SUCCESS records and counter 1; same-key recovery completed safely |
+| Deadline at finalization | Controlled clock crossed expiry after tentative success write; transaction aborted, fresh evaluation persisted FAILED/EXPIRED and one release |
+| Concurrent PENDING recovery | Interrupted processing left one durable PENDING record; 20 same-key requests resolved it to one SUCCESS/CONFIRMED without another attempt |
+| Price/free confirmation | Protected client amounts rejected; original maximum-safe reservation amount retained after event price changed; zero-value simulated checkout produced CONFIRMED without reallocating or issuing tickets |
+| Resilience/history | Lost final commit response returned uncertain 503; exact-key lookup/replay recovered committed result; bounded owner-only history/detail, legacy safe failure mapping, per-account POST limits and read recovery verified |
+| Backend tests | 55 new real HTTP/replica-set tests; all prior 368 preserved; 423 backend tests across 12 files |
+| Frontend tests | 39 new typed-API/provider/router/checkout cases; existing reservation fixtures updated for real checkout; 283 frontend tests across 18 files |
+| Complete quality gate | npm run check passed zero-warning lint, both strict TypeScript checks, 706 tests across 30 files and both production builds; no failures/skips |
+| Browser paid workflow | Disposable organizer published paid event; attendee held it, selected failure, remained HELD, retried with new key, confirmed successfully, refreshed and retained both attempts |
+| Browser replay/inventory | Owned smoke harness replayed the actual successful paid key: 200, same payment/transaction, count 2 before/after; event retained reservedCount 1 |
+| Browser free workflow | Separate free event remained HELD until Confirm Free Reservation; zero-value SUCCESS and CONFIRMED persisted across reload; that event retained one unit |
+| Browser responsive/accessibility | 1440 desktop, 768 tablet, 375 mobile without horizontal overflow; mobile Retry Payment activated by keyboard; actual transaction/history proof saved; no captured console warn/error logs |
+| Compiled production smoke | Paid fail/retry/success, stable replay/conflict, owned detail/history, free confirmation, unchanged counters, zero tickets, Secure/HttpOnly flags, revocation replay, SPA/assets and safe logs passed |
+| Compiled failure/shutdown | Invalid JWT/unavailable DB each returned payment 503 while health/frontend remained available; actual server shutdown listener drained database/worker cleanly through the Windows test wrapper |
+| Scope/hygiene | No actual financial fields/provider, real charge, production fixture, secret, generated output, browser storage, ticket/QR/check-in/analytics workflow or new dependency added |
+
+All database tests and browser/compiled smoke checks own unique disposable MongoDB
+8.2.6 replica sets, ephemeral signing keys and test accounts. No application/Atlas
+database was used or cleaned. Preview processes, browser tab and viewport override
+were stopped/reset; proof and logs remain in ignored artifacts.
+
+Coherent conventional commits cover the payment backend/integration proof, typed
+client and memory recovery, checkout UI/HTTP-boundary regressions, and documentation.
+Final remote head, clean worktree and push-triggered CI for that exact SHA are
+verified at delivery; see [GitHub Actions](https://github.com/KaizokuHam/kairopass/actions/workflows/ci.yml).
+
+Known limits: simulation is deterministic and owner-selected, with no real provider,
+webhooks, charges, refunds or disputes. PENDING recovery is explicit, not a durable
+background queue. Keys survive route navigation in memory; persisted attempts are
+recoverable through owned history after refresh. Legacy records lacking original
+request metadata are readable but cannot safely replay an unknown request. Per-account
+limits are process-local. Persistent Atlas/HTTPS/proxy/load and clock synchronization
+remain deployment work. No current reproducible Task 09 defect or unperformed
+mandatory local workflow check remains.
+
+Ready for **Task 10/14 — Secure QR Ticket Issuance, Digital Ticket Wallet &
+Cryptographic Verification** when separately authorized. It must issue at most one
+ticket per genuinely CONFIRMED reservation using durable confirmation/payment
+evidence and the existing unique Ticket reservation index. Task 10 is not implemented.

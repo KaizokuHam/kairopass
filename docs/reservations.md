@@ -1,5 +1,9 @@
 # Reservations — Task 08
 
+Task 09 now adds [simulated checkout, retries and atomic confirmation](payments.md)
+to these owned reservation pages. Hold creation, expiry and cancellation keep the
+contracts below; every new hold still begins as HELD, including free events.
+
 One reservation holds **one ticket** for **600,000 ms** from server creation.
 Every allocation starts as HELD, including free events. Amounts are exact,
 nonnegative safe integer paise copied from the Event inside the transaction.
@@ -219,6 +223,11 @@ There is no browser-storage identity/reservation cache or automatic POST retry.
 
 ## Verification and Task 09 contract
 
+The confirmation requirements below are now enforced by the implemented
+[Task 09 payment service](payments.md). Simulation, result/history and same-key
+recovery replace the old next-milestone checkout placeholder. Ticket issuance
+remains Task 10.
+
 `npm run test:reservations` runs real HTTP/replica-set tests; `test:db`, `npm test`,
 `npm run check`, and CI include them. Tests own a disposable MongoDB 8.2.6 replica
 set, ephemeral signing keys and `.test` accounts; they ignore application MONGODB_URI
@@ -233,5 +242,5 @@ simulated payment in its confirmation transaction. Confirmation retains the exis
 unit, amount and original deadline; it does not increment inventory again. It must
 race safely with these transitions and use durable idempotency/payment attempt
 rules. A delayed worker cannot make an elapsed hold eligible. Free holds follow
-the same contract and await Task 09's zero-cost path. Task 08 creates no payment
+the same contract through explicit zero-value simulated checkout. Task 08 creates no payment
 attempts, confirmations, tickets, QR codes, refunds, check-ins, or analytics.

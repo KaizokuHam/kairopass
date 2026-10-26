@@ -156,12 +156,18 @@ for the API, transaction/retry, batch, invariant and Task 09 contracts.
 | `amountPaise` | Required immutable nonnegative safe integer |
 | `status` | PENDING (default), SUCCESS, FAILED |
 | `failureReason` | Optional trimmed string |
+| `simulationOutcome` | Immutable SUCCESS/FAILURE requested scenario; supplied by Task 09, optional only for legacy compatibility |
+| `completedAt` | Server terminal-transition Date; optional for legacy records |
 | `createdAt`, `updatedAt` | Automatic timestamps |
 
 Every attempt is explicitly simulated. No card data, gateway secrets, or real
 payment execution belongs in this collection. Distinct keys permit retries and
 failed attempts remain in history. Recording a failed attempt has no automatic
 reservation-confirmation or ticket-issuance side effect.
+Task 09's [payment module](payments.md) persists PENDING before finalization,
+binds the original outcome/key, and commits SUCCESS + CONFIRMED atomically.
+It takes the amount from the existing reservation snapshot, never the current
+event price or client input. No additional inventory is allocated on confirmation.
 
 ### Ticket (`tickets`)
 
@@ -215,6 +221,7 @@ All collections also have MongoDB's `_id` index.
 | PaymentAttempt / `payment_transaction_unique` | transactionId: 1 | Unique transaction identity |
 | PaymentAttempt / `payment_idempotency_unique` | reservationId: 1, idempotencyKey: 1 | Deduplicate retries for the same reservation |
 | PaymentAttempt / `payment_reservation_history` | reservationId: 1, createdAt: -1 | Ordered retry/payment history |
+| PaymentAttempt / `payment_reservation_history_stable` | reservationId: 1, createdAt: -1, _id: -1 | Task 09 deterministic bounded owner-scoped history |
 | Ticket / `ticket_reservation_unique` | reservationId: 1 | At most one ticket per reservation |
 | Ticket / `ticket_nonce_unique` | qrNonce: 1 | Unique QR identity |
 
@@ -297,6 +304,9 @@ in the same transaction. Cancellation must likewise release only active allocate
 inventory once. Never delete reservations with TTL or cascade-delete history.
 
 ### Simulated payment confirmation — Task 09
+
+Implemented by `modules/payments`; see [payments.md](payments.md) for the two-stage
+transaction/replay contract, bounded retries, legacy handling and frontend recovery.
 
 Validate attendee ownership, amount snapshot, reservation state/deadline, and the
 attempt before atomically changing a payment to SUCCESS and a HELD reservation to
