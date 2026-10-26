@@ -158,13 +158,15 @@ describe('real database concurrency and security regressions', () => {
     expect((await Event.findById(owner.eventId).orFail()).title).toBe(eventInput.title);
   });
 
-  it('verifies the event-reservation lookup index and preserves future API boundaries', async () => {
+  it('verifies the event-reservation lookup index and preserves private drafts and future write boundaries', async () => {
     const owner = await draft();
     const index = (await Reservation.collection.listIndexes().toArray()).find((candidate) => candidate.name === 'reservation_event_status');
     expect(index?.key).toEqual({ eventId: 1, status: 1 });
     expect(index?.expireAfterSeconds).toBeUndefined();
     await request(app).delete(`${base}/${owner.eventId}`).set('Cookie', owner.cookie).set('Origin', origin).expect(404);
-    await request(app).get('/api/events').expect(404);
+    const discovery = await request(app).get('/api/events').expect(200);
+    expect(discovery.body.data.events).toEqual([]);
+    await request(app).post('/api/reservations').send({ eventId: owner.eventId }).expect(404);
     expect(await Event.countDocuments()).toBe(1);
   });
 });
