@@ -6,13 +6,13 @@ import { expireReservation } from './reservations.service.js';
 export const EXPIRATION_INTERVAL_MS = 60_000;
 export const EXPIRATION_BATCH_SIZE = 50;
 /** No module-import timer. One in-flight batch per instance; conditional transactions arbitrate across instances. */
-export function createExpirationWorker(options: { now?: () => Date; intervalMs?: number; onError?: () => void } = {}) {
+export function createExpirationWorker(options: { now?: () => Date; intervalMs?: number; onError?: (reservationId?: string) => void } = {}) {
   const now = options.now ?? (() => new Date(Date.now()));
   let timer: ReturnType<typeof setInterval> | undefined;
   let running: Promise<number> | undefined;
   let stopping = false;
-  const onError = options.onError ?? (() => {
-    if (env.LOG_LEVEL !== 'silent') console.error('Reservation expiration batch failed; a later batch will retry.');
+  const onError = options.onError ?? ((reservationId?: string) => {
+    if (env.LOG_LEVEL !== 'silent') console.error(JSON.stringify({ level: 'error', operation: 'reservation_expiration', reservationId, message: 'Reservation expiration failed; a later batch will retry.' }));
   });
   const runOnce = (): Promise<number> => {
     if (stopping || !isDatabaseReady()) return Promise.resolve(0);
@@ -25,7 +25,7 @@ export function createExpirationWorker(options: { now?: () => Date; intervalMs?:
       for (const reservation of due) {
         if (stopping) break;
         try { if (await expireReservation(reservation._id.toString(), cutoff)) released++; }
-        catch { onError(); }
+        catch { onError(reservation._id.toString()); }
       }
       return released;
     })().catch(() => { onError(); return 0; }).finally(() => { running = undefined; });

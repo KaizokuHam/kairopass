@@ -4,7 +4,7 @@ import { Reservation, type ReservationDocument } from '../../models/Reservation.
 import { User } from '../../models/User.model.js';
 import { ApiError } from '../../lib/api-error.js';
 import { assertEventInventory, expireEventHolds, HOLD_DURATION_MS, inventoryInconsistent, releaseHeld, reservationTransaction, RECONCILE_BATCH_SIZE } from './reservation-inventory.js';
-import { reservationEventProjection, toAttendeeReservation } from './reservations.mapper.js';
+import { reservationEventProjection, toAttendeeReservation, type AttendeeReservation } from './reservations.mapper.js';
 import type { ListReservationsInput } from './reservations.validation.js';
 
 const notFound = () => new ApiError(404, 'RESERVATION_NOT_FOUND', 'Reservation not found.');
@@ -25,7 +25,7 @@ async function mapped(reservation: ReservationDocument, session: ClientSession) 
 }
 export async function createReservation(userId: string, eventId: string) {
   try {
-    const result = await reservationTransaction(async (session) => {
+    const result = await reservationTransaction<{ created: boolean; reservation: AttendeeReservation } | { error: ApiError }>(async (session) => {
       await account(userId, session);
       let event = await Event.findById(eventId).session(session);
       if (!event) return { error: new ApiError(404, 'EVENT_NOT_FOUND', 'Event not found.') };
@@ -51,7 +51,7 @@ export async function createReservation(userId: string, eventId: string) {
       return { created: true, reservation: toAttendeeReservation(reservation, allocated) };
     });
     // Business rejection commits any legitimate expiry reconciliation. Infrastructure errors abort.
-    if ('error' in result && result.error) throw result.error;
+    if ('error' in result) throw result.error;
     return result;
   } catch (error) {
     if (!(error instanceof mongoose.mongo.MongoServerError && error.code === 11000 &&
@@ -97,7 +97,7 @@ export async function getReservation(userId: string, id: string) {
   });
 }
 export async function cancelReservation(userId: string, id: string) {
-  const result = await reservationTransaction(async (session) => {
+  const result = await reservationTransaction<{ reservation: AttendeeReservation } | { error: ApiError }>(async (session) => {
     await account(userId, session);
     let reservation = await owned(userId, id, session);
     const now = new Date(Date.now());
@@ -112,7 +112,7 @@ export async function cancelReservation(userId: string, id: string) {
     }
     return { reservation: await mapped(reservation, session) };
   });
-  if ('error' in result && result.error) throw result.error;
+  if ('error' in result) throw result.error;
   return result.reservation;
 }
 export async function listReservations(userId: string, input: ListReservationsInput) {

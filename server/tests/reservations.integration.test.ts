@@ -2,12 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import mongoose from 'mongoose';
 import { Event, Reservation, PaymentAttempt, Ticket } from '../src/models/index.js';
+import { connectDatabase, disconnectDatabase } from '../src/config/database.js';
+import { createApp } from '../src/app.js';
 import { createReservation, expireReservation } from '../src/modules/reservations/reservations.service.js';
 import { createExpirationWorker } from '../src/modules/reservations/reservation-expiration.js';
 import { useDisposableDatabase } from './helpers/database.js';
 import { actor, createDraft, eventsApp, eventTime, origin, type EventsApp } from './helpers/events.js';
 
-useDisposableDatabase();
+const database = useDisposableDatabase();
 let app: EventsApp;
 beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(eventTime); app = eventsApp(); });
 afterEach(() => { vi.useRealTimers(); });
@@ -81,6 +83,7 @@ describe('transactional reservation concurrency', () => {
       request(app).post(`/api/organizer/events/${event.eventId}/cancel`).set('Origin', origin).set('Cookie', event.cookie)
     ]);
     const stored = await Event.findById(event.eventId).orFail();
+    console.info(`Reservation/cancellation race observed: booking ${booking.status}, organizer cancellation ${cancellation.status}, event ${stored.status}.`);
     if (booking.status === 201) { expect(cancellation.status).toBe(409); expect(stored.status).toBe('PUBLISHED'); await invariant(event.eventId, 1); }
     else { expect(booking.status).toBe(409); expect(cancellation.status).toBe(200); expect(stored.status).toBe('CANCELLED'); await invariant(event.eventId, 0); }
   });
@@ -109,6 +112,7 @@ describe('transactional reservation concurrency', () => {
     await cancel(user.cookie, held.id).expect(200);
     await Event.updateOne({ _id: event.eventId }, { $set: { pricePaise: 0 } });
     const free = (await book(user.cookie, event.eventId).expect(201)).body.data.reservation;
+    expect((await Reservation.findById(held.id).orFail()).amountPaise).toBe(Number.MAX_SAFE_INTEGER);
     expect(free).toMatchObject({ status: 'HELD', amountPaise: 0 }); await invariant(event.eventId, 1);
   });
   it('controlled confirmed fixture retains inventory and rejects cancellation/rebooking', async () => {
@@ -190,6 +194,113 @@ describe('reservation access, validation, history, and worker', () => {
   });
   it('uses database eligibility rather than trusting callers of the service', async () => {
     const event = await published(); await expect(createReservation(event.id, event.eventId)).rejects.toMatchObject({ status: 403 }); await invariant(event.eventId, 0);
+  });
+  it.each(['bad', '00000000000000000000000g', { $ne: null }])('rejects malformed/operator event ID %#', async (eventId) => {
+    const user = await actor(app, 'ATTENDEE', 'attendee@example.test');
+    await request(app).post(base).set('Origin', origin).set('Cookie', user.cookie).send({ eventId }).expect(400);
+  });
+  it('returns safe missing-event errors and rejects non-JSON and nonempty cancel bodies', async () => {
+    const event = await published(); const user = await actor(app, 'ATTENDEE', 'attendee@example.test');
+    await book(user.cookie, '000000000000000000000000').expect(404);
+    await request(app).post(base).set('Origin', origin).set('Cookie', user.cookie).type('text').send('eventId=forged').expect(400);
+    const id = (await book(user.cookie, event.eventId).expect(201)).body.data.reservation.id as string;
+    await cancel(user.cookie, id).send({ status: 'CONFIRMED' }).expect(400); await invariant(event.eventId, 1);
+  });
+  it('keeps history user-scoped and expires owned stale holds before status filtering', async () => {
+    const event = await published(); const user = await actor(app, 'ATTENDEE', 'attendee@example.test');
+    const other = await actor(app, 'ATTENDEE', 'other@example.test');
+    const a = (await book(user.cookie, event.eventId).expect(201)).body.data.reservation;
+    await book(other.cookie, event.eventId).expect(201);
+    vi.setSystemTime(new Date(eventTime.getTime() + 600000));
+    const list = await request(app).get(`${base}?status=EXPIRED`).set('Cookie', user.cookie).expect(200);
+    expect(list.body.data.reservations.map((r: { id: string }) => r.id)).toEqual([a.id]);
+    expect(await Reservation.countDocuments({ status: 'HELD' })).toBe(1); await invariant(event.eventId, 1);
+  });
+  it('allows a different attendee to reuse lazy-expired capacity and preserves both records', async () => {
+    const event = await published(1); const a = await actor(app, 'ATTENDEE', 'attendee@example.test');
+    const b = await actor(app, 'ATTENDEE', 'other@example.test');
+    await book(a.cookie, event.eventId).expect(201); vi.setSystemTime(new Date(eventTime.getTime() + 600000));
+    await book(b.cookie, event.eventId).expect(201); await invariant(event.eventId, 1);
+    expect(await Reservation.countDocuments({ status: 'EXPIRED' })).toBe(1); expect(await Reservation.countDocuments()).toBe(2);
+  });
+  it('preserves the unique active index, history indexes, and absence of a TTL', async () => {
+    const indexes = await Reservation.collection.indexes();
+    expect(indexes.some((index) => index.name === 'reservation_active_user_event_unique' && index.unique)).toBe(true);
+    expect(indexes.map((index) => index.name)).toEqual(expect.arrayContaining(['reservation_event_expiry', 'reservation_user_history', 'reservation_user_expiry']));
+    expect(indexes.every((index) => index.expireAfterSeconds === undefined)).toBe(true);
+    const event = await published(); const user = await actor(app, 'ATTENDEE', 'attendee@example.test');
+    const first = (await book(user.cookie, event.eventId).expect(201)).body.data.reservation;
+    await expect(Reservation.create({ userId: user.id, eventId: event.eventId, status: 'HELD', amountPaise: 0, expiresAt: new Date(first.expiresAt) })).rejects.toMatchObject({ code: 11000 });
+    await invariant(event.eventId, 1);
+  });
+  it('retries a labelled transient insert failure within the transaction budget without leaking inventory', async () => {
+    const event = await published(); const user = await actor(app, 'ATTENDEE', 'attendee@example.test');
+    const failure = new mongoose.mongo.MongoServerError({ message: 'private transient test failure', code: 112 });
+    failure.addErrorLabel('TransientTransactionError');
+    vi.spyOn(Reservation, 'create').mockRejectedValueOnce(failure);
+    await book(user.cookie, event.eventId).expect(201); await invariant(event.eventId, 1);
+    expect(await Reservation.countDocuments()).toBe(1);
+  });
+  it('reports unresolved commit outcomes safely and lets the next read discover the committed hold', async () => {
+    const event = await published(); const user = await actor(app, 'ATTENDEE', 'attendee@example.test');
+    const startSession = mongoose.connection.startSession.bind(mongoose.connection);
+    vi.spyOn(mongoose.connection, 'startSession').mockImplementationOnce(async () => {
+      const session = await startSession(); const transaction = session.withTransaction.bind(session);
+      vi.spyOn(session, 'withTransaction').mockImplementationOnce(async (...args) => {
+        await transaction(...args);
+        // Controlled loss of the final response after REAL MongoDB commit. No successful HTTP claim.
+        const error = new mongoose.mongo.MongoServerError({ message: 'private commit uncertainty' });
+        error.addErrorLabel('UnknownTransactionCommitResult'); throw error;
+      });
+      return session;
+    });
+    const uncertain = await book(user.cookie, event.eventId).expect(503);
+    expect(uncertain.body.error.code).toBe('RESERVATION_OUTCOME_UNKNOWN');
+    expect(JSON.stringify(uncertain.body)).not.toContain('private commit'); await invariant(event.eventId, 1);
+    const list = await request(app).get(base).set('Cookie', user.cookie).expect(200);
+    expect(list.body.data.reservations).toHaveLength(1);
+    expect((await book(user.cookie, event.eventId).expect(200)).body.data.reservation.id).toBe(list.body.data.reservations[0].id);
+  });
+  it('fails closed during database outage and leaves liveness available', async () => {
+    const event = await published(); const user = await actor(app, 'ATTENDEE', 'attendee@example.test');
+    await disconnectDatabase();
+    try {
+      await request(app).get('/api/health').expect(200);
+      expect((await book(user.cookie, event.eventId).expect(503)).body.error.code).toBe('DATABASE_UNAVAILABLE');
+      await request(app).get(base).set('Cookie', user.cookie).expect(503);
+      const worker = createExpirationWorker(); expect(await worker.runOnce()).toBe(0); await worker.stop();
+    } finally { await connectDatabase(database.uri); }
+    await invariant(event.eventId, 0);
+  });
+  it('keeps all private reservation routes disabled when signing configuration is invalid', async () => {
+    const unconfigured = createApp({ mode: 'test', logLevel: 'silent', authEnvironment: { JWT_SECRET: 'weak' } });
+    for (const path of [base, `${base}/000000000000000000000000`]) await request(unconfigured).get(path).expect(503);
+    await request(unconfigured).post(base).send({}).expect(503); await request(unconfigured).get('/api/health').expect(200);
+  });
+  it('processes no more than 50 due holds in one worker batch, then makes further progress', async () => {
+    const event = await published(); const user = await actor(app, 'ATTENDEE', 'attendee@example.test');
+    const template = (await Event.findById(event.eventId).orFail()).toObject();
+    const events = Array.from({ length: 51 }, () => ({ ...template, _id: new mongoose.Types.ObjectId(), reservedCount: 1 }));
+    const session = await mongoose.connection.startSession();
+    try {
+      // Controlled fixtures represent valid allocations; never seed or clean an application database.
+      await session.withTransaction(async () => {
+        await Event.insertMany(events, { session });
+        await Reservation.insertMany(events.map((record) => ({ userId: user.id, eventId: record._id, status: 'HELD', amountPaise: record.pricePaise, expiresAt: eventTime })), { session });
+      });
+    } finally { await session.endSession(); }
+    const worker = createExpirationWorker();
+    expect(await worker.runOnce()).toBe(50); expect(await Reservation.countDocuments({ status: 'HELD' })).toBe(1);
+    expect(await worker.runOnce()).toBe(1); await worker.stop();
+    for (const record of events) await invariant(record._id.toString(), 0);
+    expect(await Reservation.countDocuments({ status: 'EXPIRED' })).toBe(51);
+  });
+  it('starts one explicit minute timer and stops it cleanly', async () => {
+    const interval = vi.spyOn(globalThis, 'setInterval'), clear = vi.spyOn(globalThis, 'clearInterval');
+    const worker = createExpirationWorker(); expect(interval).not.toHaveBeenCalled();
+    worker.start(); worker.start();
+    expect(interval).toHaveBeenCalledTimes(1); expect(interval.mock.calls[0]?.[1]).toBe(60000);
+    await worker.stop(); expect(clear).toHaveBeenCalledTimes(1); expect(await worker.runOnce()).toBe(0);
   });
 });
 
