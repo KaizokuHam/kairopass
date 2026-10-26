@@ -323,4 +323,3 @@ describe('reservation access, validation, history, and worker', () => {
     expect(await worker.runOnce()).toBe(0); await invariant(event.eventId, 1);
   });
 });
-
