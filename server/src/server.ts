@@ -29,6 +29,8 @@ let stopping = false;
 function shutdown(signal: string) {
   if (stopping) return;
   stopping = true;
+  // Stop accepting cleanup work while HTTP requests drain, so both share the shutdown budget.
+  const workerStopped = expirationWorker.stop();
   console.info(`Received ${signal}; closing the HTTP server.`);
   const deadline = setTimeout(() => {
     console.error('Graceful shutdown timed out.');
@@ -36,7 +38,7 @@ function shutdown(signal: string) {
   }, 10_000);
   deadline.unref();
   server.close(() => {
-    void expirationWorker.stop().then(() => disconnectDatabase()).then(() => {
+    void workerStopped.then(() => disconnectDatabase()).then(() => {
       clearTimeout(deadline);
       process.exitCode = 0;
     }).catch(() => {

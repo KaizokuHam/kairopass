@@ -302,5 +302,25 @@ describe('reservation access, validation, history, and worker', () => {
     expect(interval).toHaveBeenCalledTimes(1); expect(interval.mock.calls[0]?.[1]).toBe(60000);
     await worker.stop(); expect(clear).toHaveBeenCalledTimes(1); expect(await worker.runOnce()).toBe(0);
   });
+  it('stop waits for an in-flight real expiration transaction and skips subsequent candidates', async () => {
+    const event = await published(2); const a = await actor(app, 'ATTENDEE', 'attendee@example.test');
+    const b = await actor(app, 'ATTENDEE', 'other@example.test');
+    await book(a.cookie, event.eventId).expect(201); await book(b.cookie, event.eventId).expect(201);
+    vi.setSystemTime(new Date(eventTime.getTime() + 600000));
+    let arrived!: () => void, release!: () => void;
+    const ready = new Promise<void>((resolve) => { arrived = resolve; }), gate = new Promise<void>((resolve) => { release = resolve; });
+    const find = Event.findById.bind(Event);
+    vi.spyOn(Event, 'findById').mockImplementationOnce(() => {
+      const query = find(event.eventId), exec = query.exec.bind(query);
+      vi.spyOn(query, 'exec').mockImplementationOnce(async () => { const result = await exec(); arrived(); await gate; return result; });
+      return query;
+    });
+    const worker = createExpirationWorker(), running = worker.runOnce(); await ready;
+    let stopped = false; const stopping = worker.stop().then(() => { stopped = true; });
+    await Promise.resolve(); expect(stopped).toBe(false);
+    release(); expect(await running).toBe(1); await stopping;
+    expect(stopped).toBe(true); expect(await Reservation.countDocuments({ status: 'HELD' })).toBe(1);
+    expect(await worker.runOnce()).toBe(0); await invariant(event.eventId, 1);
+  });
 });
 
