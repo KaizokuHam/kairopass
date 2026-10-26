@@ -2,8 +2,8 @@
 
 KairoPass uses **MongoDB + Mongoose** as its permanent persistence layer. Task 02
 implements connection/readiness infrastructure, five models, indexes, and tests.
-Authentication, booking orchestration, simulated checkout, QR signing, and check-in
-remain later tasks. No business controllers or workflow services are implemented here.
+Task 03 adds AuthSession and database-backed authentication. Booking orchestration,
+simulated checkout, QR signing, and check-in remain later tasks.
 
 ## Document relationships
 
@@ -11,6 +11,7 @@ remain later tasks. No business controllers or workflow services are implemented
 erDiagram
     USER ||--o{ EVENT : organizes
     USER ||--o{ RESERVATION : owns
+    USER ||--o{ AUTH_SESSION : authenticates_with
     EVENT ||--o{ RESERVATION : receives
     RESERVATION ||--o{ PAYMENT_ATTEMPT : has_simulated_attempts
     RESERVATION ||--o| TICKET : may_issue
@@ -19,6 +20,13 @@ erDiagram
         string email UK
         string passwordHash
         string role
+    }
+    AUTH_SESSION {
+        ObjectId _id
+        ObjectId userId
+        string jtiHash UK
+        date expiresAt
+        date revokedAt
     }
     EVENT {
         ObjectId _id
@@ -81,7 +89,7 @@ DTOs and Zod input schemas instead of accepting raw model documents as input.
 | `role` | ATTENDEE (default) or ORGANIZER |
 | `createdAt`, `updatedAt` | Automatic Date timestamps |
 
-Authentication services in Task 03 will hash passwords and explicitly select
+Authentication services hash passwords with Argon2id and explicitly select
 `+passwordHash` only for credential verification. Even an explicitly selected hash
 is removed by document serialization. A lean result with an explicit credential
 projection bypasses document transforms: never send credential queries directly
@@ -161,6 +169,21 @@ prove entropy: never accept caller-supplied nonce values through HTTP inputs.
 The unique reservation index limits issuance to one ticket even under concurrent
 inserts. Schema enums do not enforce allowed state transitions or single-use
 check-in; conditional service updates in Task 11 will enforce those rules.
+
+## AuthSession (`authsessions`) — Task 03 infrastructure
+
+`userId` is an immutable User ObjectId reference; `jtiHash` is an immutable,
+unique SHA-256 digest of the cryptographic session identifier; `expiresAt` is an
+immutable Date; `revokedAt` is nullable; timestamps are automatic. Raw JWTs and
+session identifiers are never stored. Authentication checks the active session,
+its expiry, and current user on every protected request.
+
+Indexes: `auth_session_jti_unique` on `jtiHash`, `auth_session_user` on `userId`,
+and `auth_session_expiration` on `expiresAt` with TTL `expireAfterSeconds: 0`.
+This TTL only removes expired authentication infrastructure, never booking history.
+Its asynchronous timing is not trusted for access control. Registration inserts
+user/session in a transaction; logout revokes only the current session. See
+[authentication](authentication.md) for the full lifecycle and security contract.
 
 ## Indexes and initialization
 
@@ -310,8 +333,9 @@ driver reconnection can restore readiness when the connection and ping recover.
   readiness before allowing a handler to run. It does not replace transaction
   error handling when a connection drops during an operation.
 
-Use readiness for traffic routing. Liveness alone does not mean booking operations
-are safe. No database-dependent business routes exist yet.
+Use readiness to check database traffic readiness. Liveness alone does not mean
+database-dependent operations are safe. Authentication uses this guard, but
+`/api/ready` does not validate JWT configuration; see authentication startup checks.
 
 ## Local development
 
@@ -338,7 +362,7 @@ npm run dev
 Use `MONGODB_URI=mongodb://127.0.0.1:27017/kairopass?replicaSet=rs0` in the root
 `.env`. MongoDB data and downloaded test binaries are ignored. The existing API
 port remains **4000** to preserve the development proxy. If changing it, update
-both `PORT` and `API_PROXY_TARGET`. `npm start` runs the compiled server; set
+`PORT`, `API_PROXY_TARGET`, and any explicit auth `APP_ORIGIN`. `npm start` runs the compiled server; set
 `NODE_ENV=production` after `npm run build` for the single-origin application.
 
 ## MongoDB Atlas production configuration

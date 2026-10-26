@@ -27,20 +27,21 @@ Production:  browser -> Express -> /api routes -> module services -> Mongoose ->
 - `server/src/middleware`: cross-cutting request logging, errors, and API fallbacks.
 - `server/src/modules`: domain modules, introduced only in their assigned tasks.
 - `server/src/lib`: infrastructure utilities and shared errors.
-- `server/src/models`: User, Event, Reservation, PaymentAttempt, Ticket schemas/types/indexes.
+- `server/src/models`: five business models plus AuthSession schemas/types/indexes.
 - `server/src/types`: explicit public response DTOs, separate from model records and future Zod inputs.
 
-Future modules: identity, events, reservations, payments, tickets/check-in, and
-analytics. Each module will own its router, Zod request validation, service rules,
+The implemented auth module owns routes, controllers, services, Zod validation,
+token/password utilities, and typed authenticated request context. Future modules
+are events, reservations, payments, tickets/check-in, and analytics. Each owns its router, Zod request validation, service rules,
 and persistence operations. Routes should translate HTTP; services should enforce
 business invariants. Modules will call explicit service contracts instead of
-reaching into each other's controllers. No speculative abstractions or business
-endpoints are needed in Task 02. The only added HTTP endpoint is database readiness.
+reaching into each other's controllers. Task 03 adds only the four `/api/auth`
+endpoints; event/booking/payment/ticket controllers remain later work.
 
 ## Deployment and API
 
 All browser API requests use `/api`. A Vite development proxy avoids cross-origin
-cookie complexity. Optional local CORS allows only the configured client origin;
+cookie complexity. Credentialed local CORS allows only the configured client origin;
 production uses the same origin and does not enable CORS by default.
 
 API handlers and their JSON 404 fallback must run before static assets and the
@@ -50,7 +51,8 @@ Production requires a prior frontend build. The health endpoint is liveness only
 not database readiness, and must work without a database. `/api/ready` returns 503
 until a transactional MongoDB connection and its required indexes are verified,
 and a bounded ping succeeds. Startup failure is reported explicitly while
-liveness stays available. Future database-backed routers must use `requireDatabase`.
+liveness stays available. Auth and future database-backed routers use `requireDatabase`.
+Readiness retains its database-only meaning; auth configuration is checked separately.
 
 The error contract is `{ success: false, error: { code, message, requestId } }`.
 Unexpected errors must not expose stack traces or internal messages to clients.
@@ -81,18 +83,34 @@ once. These workflows are designed, not implemented in Task 02.
 See [database architecture](database.md) for complete fields/indexes, model limits,
 transaction examples, expiration/idempotency strategies, QR signing, and local/Atlas setup.
 
-## Security planned for later tasks
+## Authentication and request security
 
-Authentication will use signed JWTs in secure HTTP-only cookies, server-side
-authorization, organizer ownership checks, and an explicit CSRF strategy before
-cookie-authenticated mutations are introduced. QR tickets will require signed
+Authentication uses Argon2id passwords, HS256 JWTs in HTTP-only SameSite=Lax
+cookies, and database-backed session revocation. JWTs contain identity/session
+claims but no role; `requireAuth` retrieves the current user and `requireRole`
+checks persisted roles. Registration creates user and session in one transaction.
+Logout revokes the current session before clearing its cookie. Session hashes,
+not raw identifiers/tokens, are stored. Session-only TTL cleanup does not affect
+business history and is not relied upon to enforce expiration.
+
+Unsafe auth requests require exact configured Origins, including login/register.
+Production permits only an explicit HTTPS public origin and forces Secure cookies.
+Independent in-memory registration/login limits protect credential work. Proxy
+trust is false; forwarding headers cannot define trusted origins or bypass limits.
+Distributed/proxied deployments must configure storage/proxy policy deliberately.
+Invalid signing configuration leaves health/frontend delivery available while
+auth endpoints fail closed with 503. See [authentication](authentication.md).
+
+Role checks alone do not establish resource ownership; future services must
+validate organizer ownership separately. QR tickets will require signed
 payloads and replay-safe, atomic check-in. Simulated payments will use durable
 state transitions and idempotency; they will never collect real card data.
 
 Configuration comes from the root `.env` or process environment; process values
 take precedence. `MONGODB_URI` is required for database readiness, but not liveness.
-Authentication secrets remain reserved for Task 03. Connection failures never log
-the supplied URI or raw driver error. Secrets must never enter client bundles.
+Authentication requires a strong environment-provided JWT secret and production
+origin settings. Connection/auth failures never log secrets or raw credential-
+bearing driver errors. Secrets must never enter client bundles.
 
 ## Quality gates
 

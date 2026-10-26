@@ -38,10 +38,31 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - Run appropriate integration tests. Database tests must own a disposable replica set,
   ignore application `MONGODB_URI`, and never clean shared/production data.
 
+## Authentication contract (Task 03)
+
+- Read `docs/authentication.md` before changing authentication or adding protected routes.
+- Reuse the auth module, Argon2id helpers, JWT utilities, and AuthSession; do not add another database connection.
+- JWTs use HS256 and only sub/jti/iat/exp/iss/aud claims; never store a role or credential in a token.
+- Store only a SHA-256 hash of the random session identifier. Check revocation and expiry on each request.
+- Use `requireDatabase`, `requireAuth(config)`, and `requireRole(...)` as appropriate.
+  Authorization uses the current persisted user; role checks do not replace resource ownership checks.
+- Use explicit public DTOs. Never return JWTs/password hashes or log credential-bearing values.
+- Keep registration user/session writes transactional and handle unique-email races as 409.
+- Logout must revoke only the current session before clearing the browser cookie.
+- Keep HTTP-only, SameSite=Lax, host-only cookies at `/`; production Secure is mandatory.
+- Require exact configured Origins for all future cookie-authenticated unsafe routes;
+  include login/register protection. Do not derive trusted origins from request Host/Forwarded headers.
+- Preserve per-IP registration/login limits. Proxy trust is false; deployment changes need an explicit trusted-proxy policy.
+- Missing/weak JWT secrets disable auth with 503; never add a fallback secret.
+- AuthSession-only TTL cleanup is allowed; reservation TTL deletion remains prohibited.
+- Task 04 must use relative API requests and restore state through `/api/auth/me`.
+  Do not store tokens in localStorage/sessionStorage or invent authenticated success states.
+
 ## Verification and Git
 
 - Use `npm ci` and `npm run check` (lint, types, all tests, both builds).
 - `npm run test:unit` needs no MongoDB process; `npm run test:db` owns its replica set.
+- `npm run test:auth` runs authentication unit and real HTTP/replica-set tests with ephemeral keys.
 - Keep changes small and coherent; use conventional commits and the configured authorized Git identity.
 - Preserve existing work. Never fabricate/backdate commits, rewrite published history, or force-push.
 - Avoid unnecessary repository restructuring. Never commit secrets, binaries, dependencies, or build output.
@@ -50,7 +71,7 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 
 ## Remaining roadmap
 
-- 03 — Authentication Backend
+- 03 — Authentication Backend (implemented; see verification record)
 - 04 — Authentication Frontend
 - 05 — Event Management Backend
 - 06 — Event Management Frontend
@@ -64,4 +85,5 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - 14 — Production Release & Documentation
 
 Future tasks must continue using MongoDB/Mongoose. Implement only the task the
-user authorizes; Task 02 does not authorize authentication or booking workflows.
+user authorizes. Authentication frontend belongs to Task 04; booking/payment/
+ticket workflows remain later tasks and require their own authorization.

@@ -14,8 +14,8 @@ Submission deadline: **October 27, 2026, 11:59 PM IST**.
 | --- | --- | --- |
 | 01 | Repository, architecture, full-stack foundation, developer tooling, CI | Completed — implementation and local acceptance verified |
 | 02 | MongoDB + Mongoose Architecture, Database Migration & Data Integrity | Completed — implementation and local acceptance verified |
-| 03 | Authentication Backend | Next — not implemented |
-| 04 | Authentication Frontend | Upcoming |
+| 03 | Authentication Backend | Completed — implementation and local acceptance verified |
+| 04 | Authentication Frontend, Protected Routing & User Experience | Next — not implemented |
 | 05 | Event Management Backend | Upcoming |
 | 06 | Event Management Frontend | Upcoming |
 | 07 | Event Discovery | Upcoming |
@@ -101,3 +101,46 @@ No Atlas account or persistent application
 database is provisioned by the tests; a local replica set or an environment-provided
 Atlas URI is required for ongoing database readiness. Authentication and business
 workflows remain outside Task 02.
+
+## Task 03 acceptance record
+
+The authentication backend adds only register/login/me/logout, credential hashing,
+JWT cookies and revocable sessions, persisted-role middleware, validation, rate
+limits, and Origin-based CSRF defense. No Task 04 frontend or later business
+workflow is implemented. See [authentication](authentication.md) for API examples,
+configuration, startup behavior, and security limitations.
+
+Verified during implementation on **October 26, 2026 (IST)**:
+
+- The existing 75-test foundation passed before implementation; remote/account
+  identity were checked and `main` was safely synchronized.
+- `npm run test:auth` passed **90 tests**: 22 unit tests and 68 real HTTP integration
+  tests against a test-owned replica set with ephemeral signing keys.
+- Both public roles register; normalization, Argon2id verification, safe DTOs,
+  duplicate races, transactional rollback, and generic login failures are tested.
+- JWT claims/signature/expiry, invalid configuration, deleted users, missing/
+  revoked/expired sessions, logout replay rejection, and independent sessions are tested.
+- Isolated role routes verify 401/403 behavior and immediate persisted-role changes.
+- JSON/input limits, no privilege-field escalation, both rate limiters, spoofed
+  forwarding headers, exact Origin rejection/acceptance, credentialed CORS, and
+  production cookie set/clear flags are tested.
+- Database unavailability, dropped queries, malformed JSON, sanitized failures,
+  and omission of passwords/tokens/secrets from request logs are tested.
+- AuthSession indexes are additive, explicitly verified, and include session-only
+  TTL cleanup. Existing business models and frontend sources remain unchanged.
+- A fresh `npm ci` passed: 378 installed packages, no reported vulnerabilities.
+
+- The final clean-install quality gate passed **165 tests across 6 files**, lint
+  with zero warnings, strict TypeScript in both workspaces, and both builds.
+- Live compiled-server smoke tests passed: registration 201, login/me/logout 200,
+  copied-token replay 401, independent login retained, untrusted logout Origin 403,
+  Secure/HttpOnly cookies, and no credential/URI values in logs.
+- Invalid signing configuration and unavailable MongoDB each produced auth 503
+  while liveness and frontend delivery remained 200.
+- `npm run test:unit` passed **57 tests across 4 files** after quoting the exclusion
+  glob for Windows/POSIX shell consistency; no MongoDB process is needed.
+
+Secret/artifact hygiene, final remote commits, and CI conclusion are checked at
+delivery. Ongoing application use requires
+a persistent replica-set/Atlas URI, an actual generated JWT secret, and correct
+origin settings. Test infrastructure provisions none of those as production resources.

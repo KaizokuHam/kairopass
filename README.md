@@ -22,14 +22,14 @@ guests, and understand attendance.
 5. Organizer analytics and reporting.
 
 Payments will be simulated. No real card processing or real payment collection
-is planned. These product workflows are not implemented in Tasks 01–02.
+is planned. Event/booking/payment/ticket workflows remain upcoming after Task 03.
 
 ## Stack and architecture
 
 - React, Vite, TypeScript, Tailwind CSS, React Router, shadcn/ui-compatible structure.
 - Node.js 24, Express 5, TypeScript, Zod.
 - MongoDB replica set / MongoDB Atlas, Mongoose 9, explicit indexes and transaction-ready infrastructure.
-- Planned authentication: JWT in secure HTTP-only cookies, with role authorization.
+- Argon2id passwords, HTTP-only JWT cookies, MongoDB-backed sessions, and persisted-role authorization.
 - Vitest, Supertest, ESLint, npm workspaces, GitHub Actions.
 
 The browser uses relative `/api` URLs. Vite proxies them to Express during
@@ -55,7 +55,8 @@ The web app runs at <http://localhost:5173> and the API at
 `/api/ready` returns 503 until MongoDB is ready. For full database readiness, start
 an owned MongoDB replica set and initialize it as described in
 [database setup](docs/database.md#local-development). A standalone server is rejected.
-No database-dependent business endpoints exist yet.
+Authentication endpoints require database readiness and valid JWT configuration.
+Frontend authentication pages arrive in Task 04.
 
 | Command | Purpose |
 | --- | --- |
@@ -69,6 +70,7 @@ No database-dependent business endpoints exist yet.
 | `npm test` | Run all HTTP, configuration, and real MongoDB integration tests |
 | `npm run test:unit` | Run HTTP/configuration/disconnected guard tests without MongoDB |
 | `npm run test:db` | Start an owned disposable MongoDB replica set and run database tests |
+| `npm run test:auth` | Run authentication unit and real HTTP integration tests |
 | `npm run test:watch` | Run backend tests in watch mode |
 | `npm run build` | Compile client and server |
 | `npm run check` | Run lint, type checks, tests, and builds |
@@ -78,10 +80,23 @@ No database-dependent business endpoints exist yet.
 
 Copy the documented [`.env.example`](.env.example) into the repository root.
 `PORT`, `HOST`, `NODE_ENV`, `CLIENT_ORIGIN`, `API_PROXY_TARGET`, and `LOG_LEVEL`
-configure the foundation. If you change `PORT`, also update `API_PROXY_TARGET`.
+configure the foundation. If you change `PORT`, also update `API_PROXY_TARGET`
+and any explicit `APP_ORIGIN`.
 `MONGODB_URI` selects the application database. The example uses an initialized
 local `rs0` replica set. Production uses an environment-provided Atlas URI; no real
-URI is committed. Cookie/JWT entries remain placeholders for Task 03.
+URI is committed. Replace the `JWT_SECRET` placeholder with a fresh base64url
+signing key before using authentication:
+
+```sh
+node -e "process.stdout.write(require('node:crypto').randomBytes(48).toString('base64url'))"
+```
+
+Paste the result only into the ignored `.env` or a secret store. JWT lifetime
+defaults to 12 hours. Production requires an explicit HTTPS `APP_ORIGIN` and
+always uses Secure cookies. Missing/weak JWT configuration leaves liveness
+available but makes auth endpoints return 503; no fallback secret exists.
+See [authentication setup and API](docs/authentication.md) for Origin, cookie,
+rate-limit, proxy, and credential requirements.
 Never put secrets in `VITE_*` variables: Vite exposes those to the
 browser. Environment files, dependencies, and build output are ignored by Git.
 
@@ -117,8 +132,8 @@ MongoDB deployment; the liveness endpoint remains independent.
 │   └── components.json         # shadcn/ui conventions and aliases
 ├── server/
 │   ├── src/
-│   │   ├── modules/            # Future domain modules
-│   │   ├── models/             # Five Mongoose models, types, and verified indexes
+│   │   ├── modules/auth/       # Routes, controllers, services, validation, JWT/password utilities
+│   │   ├── models/             # Five business models plus AuthSession and verified indexes
 │   │   ├── types/              # Public response DTOs
 │   │   ├── middleware/         # Logging, errors, API 404
 │   │   ├── config/             # Zod environment and MongoDB lifecycle/readiness
@@ -128,6 +143,7 @@ MongoDB deployment; the liveness endpoint remains independent.
 │   └── tests/                  # HTTP, config, disposable replica-set tests
 ├── docs/
 │   ├── architecture.md
+│   ├── authentication.md
 │   ├── database.md
 │   └── implementation-plan.md
 ├── .github/workflows/ci.yml
@@ -158,6 +174,20 @@ returns a consistent 503 `DATABASE_UNAVAILABLE` error. Initial database failures
 are reported without leaking credentials; restart the API after correcting them.
 Database-backed routers in later tasks must use the exported readiness guard.
 
+## Authentication API
+
+| Method / endpoint | Behavior |
+| --- | --- |
+| `POST /api/auth/register` | Validate attendee/organizer input, hash password, atomically create user/session; 201 |
+| `POST /api/auth/login` | Verify credentials, create session, set HTTP-only JWT cookie; 200 |
+| `GET /api/auth/me` | Verify JWT, active session, and current persisted user; 200 or 401 |
+| `POST /api/auth/logout` | Revoke only the current session, clear cookie; 200 |
+
+Unsafe auth requests require an exact trusted Origin; registration/login also
+require JSON and have separate per-IP limits. No token or password hash is
+returned in JSON. [Authentication documentation](docs/authentication.md) contains
+example requests/responses and the security/deployment trade-offs.
+
 The CI workflow runs `npm ci`, lint, type checks, tests, and production builds
 on pushes and pull requests. Tests start their own MongoDB replica set; no shared
 database, Atlas credentials, or deployment secrets are required. The first DB test
@@ -166,19 +196,24 @@ read application `MONGODB_URI` for data cleanup.
 
 ## Implementation status
 
-Tasks 01–02 establish the application foundation and MongoDB data architecture.
-The five models, schema validation, actual uniqueness indexes, connection
-lifecycle, and readiness checks are implemented. Local verification passes lint,
-strict TypeScript, **75 tests across 4 files**, and both production builds,
-including **40 real database integration tests** and transaction commit/rollback.
-The frontend, health contract, middleware, proxy, and single-origin serving remain
-intact. See [CI runs](https://github.com/KaizokuHam/kairopass/actions/workflows/ci.yml)
-for the observed remote status and [database architecture](docs/database.md) for
-data-integrity limits and infrastructure setup.
+Tasks 01–02 establish the application and MongoDB foundation. Task 03 adds the
+four authentication endpoints, Argon2id passwords, revocable JWT sessions,
+authorization middleware, rate limiting, and CSRF defenses. Authentication-specific
+verification passes **90 tests**, including **68 real HTTP integration tests**
+against an owned replica set. The full quality gate passes **165 tests / 6 files**,
+lint, strict types, and both builds after a clean install. Compiled-server smoke
+checks verify registration/login/me/logout, copied-token rejection, independent
+sessions, CSRF, cookie flags, and safe failures with invalid JWT configuration or
+unavailable MongoDB. The unit-only command separately passes **57 tests**.
 
-Authentication, event management/discovery, reservation orchestration, simulated
-checkout, QR generation, check-in, and analytics remain upcoming work. Task 03 is
-Authentication Backend. [AGENTS.md](AGENTS.md) records the permanent stack and
+The frontend, health contract, existing business models, proxy, and single-origin
+serving remain intact. See [CI runs](https://github.com/KaizokuHam/kairopass/actions/workflows/ci.yml)
+for remote verification and [database architecture](docs/database.md) for data-integrity limits.
+
+Authentication frontend, event management/discovery, reservation orchestration,
+simulated checkout, QR generation, check-in, and analytics remain upcoming work.
+Task 04 is Authentication Frontend, Protected Routing & User Experience.
+[AGENTS.md](AGENTS.md) records the permanent stack and
 engineering rules for future sessions.
 
 ## License
