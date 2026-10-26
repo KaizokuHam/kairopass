@@ -12,6 +12,7 @@ import { parseAuthEnvironment, type AuthConfig } from './config/auth.js';
 import { createAuthRouter } from './modules/auth/auth.routes.js';
 import { createEventsRouter } from './modules/events/events.routes.js';
 import { createDiscoveryRouter } from './modules/discovery/discovery.routes.js';
+import { createReservationsRouter } from './modules/reservations/reservations.routes.js';
 
 interface AppOptions {
   mode?: 'development' | 'test' | 'production';
@@ -68,6 +69,7 @@ export function createApp(options: AppOptions = {}) {
   app.use('/api/auth', createAuthRouter(authConfig));
   app.use('/api/organizer/events', createEventsRouter(authConfig));
   app.use('/api/events', createDiscoveryRouter());
+  app.use('/api/reservations', createReservationsRouter(authConfig));
   // Match the /api path boundary, including /api itself, before any SPA routes.
   app.use('/api', apiNotFound);
 

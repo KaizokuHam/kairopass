@@ -166,7 +166,7 @@ describe('real database concurrency and security regressions', () => {
     await request(app).delete(`${base}/${owner.eventId}`).set('Cookie', owner.cookie).set('Origin', origin).expect(404);
     const discovery = await request(app).get('/api/events').expect(200);
     expect(discovery.body.data.events).toEqual([]);
-    await request(app).post('/api/reservations').send({ eventId: owner.eventId }).expect(404);
+    await request(app).post('/api/payments').send({ eventId: owner.eventId }).expect(404);
     expect(await Event.countDocuments()).toBe(1);
   });
 });

@@ -29,4 +29,7 @@ reservationSchema.index({ userId: 1, eventId: 1 }, {
 reservationSchema.index({ status: 1, expiresAt: 1 }, { name: 'reservation_expiration_scan' });
 // Cancellation must check active bookings by event, even if its inventory counter is inconsistent.
 reservationSchema.index({ eventId: 1, status: 1 }, { name: 'reservation_event_status' });
+reservationSchema.index({ eventId: 1, status: 1, expiresAt: 1, _id: 1 }, { name: 'reservation_event_expiry' });
+reservationSchema.index({ userId: 1, createdAt: -1, _id: -1 }, { name: 'reservation_user_history' });
+reservationSchema.index({ userId: 1, status: 1, expiresAt: 1 }, { name: 'reservation_user_expiry' });
 export const Reservation = model<ReservationRecord>('Reservation', reservationSchema);

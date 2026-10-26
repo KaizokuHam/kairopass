@@ -2,6 +2,9 @@ import { createApp } from './app.js';
 import { env } from './config/env.js';
 import { connectDatabase, disconnectDatabase } from './config/database.js';
 import { parseAuthEnvironment } from './config/auth.js';
+import { createExpirationWorker } from './modules/reservations/reservation-expiration.js';
+
+const expirationWorker = createExpirationWorker();
 
 try {
   parseAuthEnvironment(process.env);
@@ -11,7 +14,7 @@ try {
 
 const server = createApp().listen(env.PORT, env.HOST, () => {
   console.info(`KairoPass API listening at http://${env.HOST}:${env.PORT} (${env.NODE_ENV})`);
-  void connectDatabase().catch((error: unknown) => {
+  void connectDatabase().then(() => { if (!stopping) expirationWorker.start(); }).catch((error: unknown) => {
     console.error(error instanceof Error ? error.message : 'MongoDB initialization failed.');
     console.error('API liveness remains available; /api/ready returns 503 until MongoDB is configured and reachable.');
   });
@@ -33,7 +36,7 @@ function shutdown(signal: string) {
   }, 10_000);
   deadline.unref();
   server.close(() => {
-    void disconnectDatabase().then(() => {
+    void expirationWorker.stop().then(() => disconnectDatabase()).then(() => {
       clearTimeout(deadline);
       process.exitCode = 0;
     }).catch(() => {
