@@ -15,6 +15,16 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 
 function safeMessage(status: number, code: string): string {
   const eventMessages: Record<string, string> = {
+    RESERVATION_NOT_FOUND: 'This reservation could not be found.',
+    EVENT_SOLD_OUT: 'This event is sold out. Refresh availability to check for released holds.',
+    EVENT_NOT_BOOKABLE: 'This event is no longer available for reservations.',
+    REGISTRATION_CLOSED: 'Registration has closed for this event.',
+    ALREADY_BOOKED: 'You already have a confirmed reservation for this event.',
+    RESERVATION_CONFIRMED: 'Confirmed reservations cannot be cancelled here.',
+    RESERVATION_CONFLICT: 'The reservation changed. Check My Reservations before trying again.',
+    RESERVATION_OUTCOME_UNKNOWN: 'This operation may have completed. Check My Reservations before trying again.',
+    RESERVATION_RECONCILIATION_PENDING: 'Reservation history is updating. Please refresh shortly.',
+    INVENTORY_INCONSISTENT: 'Inventory could not be verified. Please try again later.',
     EVENT_NOT_FOUND: 'This event could not be found.',
     INVALID_DISCOVERY_QUERY: 'Please review the event search and date filters.',
     INVALID_EVENT_INPUT: 'Please review the event details and highlighted fields.',
