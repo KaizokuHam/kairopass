@@ -2,7 +2,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import mongoose from 'mongoose';
-import { Event, Reservation, PaymentAttempt, Ticket, User } from '../src/models/index.js';
+import { Event, Reservation, PaymentAttempt, Ticket, User, initializeModels } from '../src/models/index.js';
 import { connectDatabase, disconnectDatabase } from '../src/config/database.js';
 import { createApp } from '../src/app.js';
 import { issueTicket } from '../src/modules/tickets/tickets.service.js';
@@ -147,6 +147,16 @@ describe('ticket eligibility and current state', () => {
     await Ticket.collection.updateOne({ _id: new mongoose.Types.ObjectId(id) }, { $unset: { qrNonce: '' } });
     await detail(id, f.cookie).expect(503); await issue(f).expect(503);
     expect(await Ticket.collection.findOne({ _id: new mongoose.Types.ObjectId(id) })).not.toHaveProperty('qrNonce');
+  });
+  it.each([{ status: 'UNKNOWN' }, { checkedInAt: new Date() }])('never signs inconsistent ticket lifecycle state %#', async (fields) => {
+    const f = await fixture(), issued = await issue(f).expect(201), id = issued.body.data.ticket.id;
+    await Ticket.collection.updateOne({ _id: new mongoose.Types.ObjectId(id) }, { $set: fields });
+    await detail(id, f.cookie).expect(503); await issue(f).expect(503); expect(await Ticket.countDocuments()).toBe(1);
+  });
+  it('rejects a pre-existing ticket TTL at additive startup without removing history', async () => {
+    await Ticket.collection.createIndex({ createdAt: 1 }, { name: 'test_invalid_ticket_ttl', expireAfterSeconds: 86400 });
+    try { await expect(initializeModels()).rejects.toThrow('Ticket history cannot have a TTL index.'); }
+    finally { await Ticket.collection.dropIndex('test_invalid_ticket_ttl'); }
   });
   it.each(['event', 'reservation', 'payment'])('revalidates when %s eligibility changes during issuance', async (source) => {
     const f = await fixture(), gate = barrier(), find = Ticket.findOne.bind(Ticket);

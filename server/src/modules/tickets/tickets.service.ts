@@ -29,6 +29,7 @@ async function evidence(reservation: ReservationDocument, session: ClientSession
   return { event, payment: verified ? payment : null };
 }
 async function toTicket(ticket: StoredTicket, reservation: ReservationDocument, session: ClientSession, config?: TicketConfig) {
+  if (!['ISSUED', 'USED', 'REVOKED'].includes(ticket.status) || (ticket.status === 'ISSUED' && ticket.checkedInAt !== null)) throw unavailable();
   const { event, payment } = await evidence(reservation, session);
   const admissionState = ticket.status === 'USED' ? 'USED' : ticket.status === 'REVOKED' ? 'REVOKED' :
     !event ? 'EVENT_UNAVAILABLE' : event.status === 'CANCELLED' ? 'EVENT_CANCELLED' : event.status !== 'PUBLISHED' ? 'EVENT_UNAVAILABLE' :
