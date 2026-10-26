@@ -33,12 +33,14 @@ Production:  browser -> Express -> /api routes -> module services -> Mongoose ->
 - `server/src/types`: explicit public response DTOs, separate from model records and future Zod inputs.
 
 The implemented auth module owns routes, controllers, services, Zod validation,
-token/password utilities, and typed authenticated request context. Future modules
-are events, reservations, payments, tickets/check-in, and analytics. Each owns its router, Zod request validation, service rules,
+token/password utilities, and typed authenticated request context. The events
+module owns private organizer event management. Future modules are reservations,
+payments, tickets/check-in, and analytics. Each owns its router, Zod request validation, service rules,
 and persistence operations. Routes should translate HTTP; services should enforce
 business invariants. Modules will call explicit service contracts instead of
 reaching into each other's controllers. Task 03 adds only the four `/api/auth`
-endpoints; event/booking/payment/ticket controllers remain later work.
+endpoints; Task 05 adds `/api/organizer/events`. Public discovery, booking,
+payment, and ticket controllers remain later work.
 
 ## Deployment and API
 
@@ -53,7 +55,7 @@ Production requires a prior frontend build. The health endpoint is liveness only
 not database readiness, and must work without a database. `/api/ready` returns 503
 until a transactional MongoDB connection and its required indexes are verified,
 and a bounded ping succeeds. Startup failure is reported explicitly while
-liveness stays available. Auth and future database-backed routers use `requireDatabase`.
+liveness stays available. Auth, events, and future database-backed routers use `requireDatabase`.
 Readiness retains its database-only meaning; auth configuration is checked separately.
 
 The error contract is `{ success: false, error: { code, message, requestId } }`.
@@ -103,6 +105,37 @@ Local browser development uses **http://localhost:5173**, matching the exact
 `CLIENT_ORIGIN` default; the Vite script binds localhost and proxies `/api` to
 127.0.0.1:4000. Browser JavaScript sets neither Origin nor cookie headers.
 Production still serves client/API on one origin with Secure HTTP-only cookies.
+
+## Organizer event management (Task 05)
+
+`modules/events` separates routing, thin controllers, Zod validation, service
+rules, explicit DTO types, and mapping. Its six endpoints live under the private
+`/api/organizer/events` namespace; `/api/events` remains reserved for Task 07.
+All routes reuse readiness, authentication, persisted ORGANIZER authorization,
+and mutation Origin checks. Event lookups/writes include ID and organizer ID;
+missing and unowned events share a 404 response. The existing Event schema and
+event indexes remain unchanged.
+
+Strict bodies reject identity, status, inventory, timestamps, operators, and
+unknown fields. Draft edits validate complete merged state and document hooks.
+Published events freeze dates, prices, and capacity, while cancelled events
+cannot be edited or reopened. Conditional writes compare internal version,
+status, owner, and reserved count, increment the version, and update only allowed
+fields. Management never writes the reservation-owned inventory counter.
+
+Publication requires valid future start/deadline and checks those boundaries
+again in the write predicate. Cancellation requires zero occupied inventory and
+no HELD/CONFIRMED records inside a snapshot transaction. Its write to the same
+event serializes against Task 08's required conditional event allocation and
+reservation insertion transaction. Retries reload state and rerun safety checks.
+No refunds, inventory repair, deletion, or booking orchestration are implemented.
+
+Listing uses a validated page/limit/status/sort/search contract, literal escaped
+title search, deterministic timestamp/ID ordering, and one aggregation for page
+and count with a 2-second query budget. The additive reservation event/status
+index supports cancellation's defensive lookup. Error handling preserves the
+standard request-ID envelope and sanitizes all database failures. See
+[event API and concurrency details](events.md) for Task 06 integration and limits.
 
 ## Persistence and data integrity
 
@@ -169,3 +202,7 @@ unavailable recovery, and complete form-to-dashboard flows. `npm test` and CI
 run both workspaces; `npm run test:web` runs only the frontend suite. Real-browser
 integration uses disposable accounts and a separately owned MongoDB replica set.
 The established Vite proxy target and production single-origin client are preserved.
+Event integration suites reuse the owned replica-set helper and real cookie auth.
+Controlled clocks and query barriers test actual optimistic-update conflicts,
+transaction retries, and reservation allocation versus cancellation. `test:events`
+targets these suites; `test:db`, the full quality gate, and CI also include them.

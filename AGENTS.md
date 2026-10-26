@@ -78,11 +78,35 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - Test with Vitest/RTL/user-event at the HTTP boundary, using real provider/router behavior.
   Preserve accessible labels, error associations, keyboard menus, focus, and responsive layouts.
 
+## Organizer event contract (Task 05)
+
+- Read `docs/events.md` before changing event behavior or building Task 06.
+- Reuse `modules/events`, the existing Event model, auth/readiness/Origin guards,
+  and explicit organizer DTO. Keep `/api/organizer/events` private; discovery is Task 07.
+- Every resource lookup/write must include authenticated organizer ownership;
+  return 404 for missing/unowned events. Never accept organizerId from clients.
+- Reject unknown/protected fields. Validate merged draft edits and model hooks.
+  Published events permit only title/description/venue edits; CANCELLED is terminal.
+- Publication needs a future start and deadline. Repeated publish/cancel return 409.
+- Preserve conditional version/status/owner/reserved-count predicates and explicit
+  version increments on management writes. Never overwrite inventory through edits.
+- Cancellation requires zero reservedCount and no HELD/CONFIRMED records in its
+  transaction. Elapsed HELD records still block until Task 08 explicitly expires them.
+- Task 08 allocation MUST conditionally update the same PUBLISHED event and insert
+  its reservation in one transaction, so cancellation races cause conflict/revalidation.
+  Raw reservation inserts without that event write bypass this consistency contract.
+- Keep reservation_event_status additive; no reservation TTL/history deletion.
+- List output remains bounded, deterministically sorted, organizer-scoped, with
+  escaped literal search and query timeout errors; never fake an empty success.
+- Preserve controlled-clock, real database ownership/lifecycle/concurrency tests.
+  On 409 EVENT_UPDATE_CONFLICT, future clients should reload and request review.
+
 ## Verification and Git
 
 - Use `npm ci` and `npm run check` (lint, types, all tests, both builds).
 - `npm run test:unit` needs no MongoDB process; `npm run test:db` owns its replica set.
 - `npm run test:auth` runs authentication unit and real HTTP/replica-set tests with ephemeral keys.
+- `npm run test:events` runs event integration suites; `test:db` also includes them.
 - `npm run test:web` runs frontend tests; `npm test` and CI include both workspaces.
 - `npm run test:watch -w client` watches frontend tests; root `test:watch` watches backend tests.
 - Keep changes small and coherent; use conventional commits and the configured authorized Git identity.
@@ -95,7 +119,7 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 
 - 03 — Authentication Backend (implemented; see verification record)
 - 04 — Authentication Frontend (implemented; see verification record)
-- 05 — Event Management Backend
+- 05 — Event Management Backend (implemented; see verification record)
 - 06 — Event Management Frontend
 - 07 — Event Discovery
 - 08 — Reservation Engine
@@ -107,5 +131,5 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - 14 — Production Release & Documentation
 
 Future tasks must continue using MongoDB/Mongoose. Implement only the task the
-user authorizes. Task 05 is Event Management Backend; booking/payment/ticket
+user authorizes. Task 06 is Event Management Frontend; booking/payment/ticket
 workflows remain later tasks and require their own authorization.

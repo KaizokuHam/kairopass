@@ -339,8 +339,10 @@ credentials for test data or cleanup. Targeted fault injection tests exercise
 transaction rollback and mid-request connection errors alongside real database
 index, transaction, and session checks.
 
-No refresh tokens, password reset, email verification, MFA, event endpoints,
-reservations, payments, QR signing, or check-in workflows are implemented.
+Task 05's [organizer event endpoints](events.md) reuse these authentication,
+persisted-role, readiness, and Origin guards and add resource ownership checks.
+No refresh tokens, password reset, email verification, MFA, reservation endpoints,
+payments, QR signing, or check-in workflows are implemented.
 Password/secret rotation and all-session revocation UI are also outside Tasks
 03–04. A signing-key change invalidates existing JWTs.
 

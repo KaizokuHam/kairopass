@@ -2,7 +2,8 @@
 
 KairoPass uses **MongoDB + Mongoose** as its permanent persistence layer. Task 02
 implements connection/readiness infrastructure, five models, indexes, and tests.
-Task 03 adds AuthSession and database-backed authentication. Booking orchestration,
+Task 03 adds AuthSession and database-backed authentication. Task 05 adds private
+organizer event management and safe lifecycle operations. Booking orchestration,
 simulated checkout, QR signing, and check-in remain later tasks.
 
 ## Document relationships
@@ -117,6 +118,14 @@ or CANCELLED records. A one-ticket reservation occupies one unit. Task 08 must
 maintain this invariant within transactions; saving a reservation does not mutate
 the event automatically. Changing capacity must not lower it below occupied inventory.
 
+Task 05's [organizer API](events.md) validates stricter input bounds (including
+capacity at most 1,000,000), complete merged state, lifecycle policy, and ownership.
+Its conditional query updates explicitly compare/increment the internal version
+and preserve reservedCount. Publication freezes dates, capacity, and price.
+Cancellation checks both occupied inventory and active reservation records in a
+transaction and retains event/history documents. Raw writes do not enforce these
+service policies; Task 08 must coordinate inventory writes on the same event.
+
 ### Reservation (`reservations`)
 
 | Field | Rules |
@@ -196,6 +205,7 @@ All collections also have MongoDB's `_id` index.
 | Event / `event_discovery` | status: 1, startAt: 1 | Published-event date queries |
 | Reservation / `reservation_active_user_event_unique` | userId: 1, eventId: 1 | Unique only where status is in HELD/CONFIRMED |
 | Reservation / `reservation_expiration_scan` | status: 1, expiresAt: 1 | Find elapsed holds for explicit cleanup; **not TTL** |
+| Reservation / `reservation_event_status` | eventId: 1, status: 1 | Task 05 cancellation checks for active bookings despite an inconsistent counter |
 | PaymentAttempt / `payment_transaction_unique` | transactionId: 1 | Unique transaction identity |
 | PaymentAttempt / `payment_idempotency_unique` | reservationId: 1, idempotencyKey: 1 | Deduplicate retries for the same reservation |
 | PaymentAttempt / `payment_reservation_history` | reservationId: 1, createdAt: -1 | Ordered retry/payment history |

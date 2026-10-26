@@ -13,16 +13,17 @@ application for attendees and organizers. Attendees will discover events and
 manage their tickets; organizers will publish events, manage capacity, check in
 guests, and understand attendance.
 
-## Planned workflows
+## Product workflows
 
-1. Organizer event creation and management.
+1. Organizer event creation and management (backend available; frontend in Task 06).
 2. Event discovery and ticket reservations.
 3. Database-backed simulated payment processing and confirmation.
 4. Signed QR ticket issuance and secure check-in.
 5. Organizer analytics and reporting.
 
 Payments will be simulated. No real card processing or real payment collection
-is planned. Event/booking/payment/ticket workflows remain upcoming after Task 04.
+is planned. Event management UI, discovery, booking, payments, and ticketing
+remain upcoming after Task 05.
 
 ## Stack and architecture
 
@@ -75,6 +76,7 @@ The `/api` proxy continues to target `http://127.0.0.1:4000`.
 | `npm run test:unit` | Run HTTP/configuration/disconnected guard tests without MongoDB |
 | `npm run test:db` | Start an owned disposable MongoDB replica set and run database tests |
 | `npm run test:auth` | Run authentication unit and real HTTP integration tests |
+| `npm run test:events` | Run event ownership, validation, lifecycle, and concurrency integration tests |
 | `npm run test:watch` | Run backend tests in watch mode |
 | `npm run build` | Compile client and server |
 | `npm run check` | Run lint, type checks, tests, and builds |
@@ -138,6 +140,7 @@ MongoDB deployment; the liveness endpoint remains independent.
 ├── server/
 │   ├── src/
 │   │   ├── modules/auth/       # Routes, controllers, services, validation, JWT/password utilities
+│   │   ├── modules/events/     # Private organizer event management, lifecycle, and DTOs
 │   │   ├── models/             # Five business models plus AuthSession and verified indexes
 │   │   ├── types/              # Public response DTOs
 │   │   ├── middleware/         # Logging, errors, API 404
@@ -150,6 +153,7 @@ MongoDB deployment; the liveness endpoint remains independent.
 │   ├── architecture.md
 │   ├── authentication.md
 │   ├── database.md
+│   ├── events.md
 │   └── implementation-plan.md
 ├── .github/workflows/ci.yml
 ├── .env.example
@@ -244,8 +248,18 @@ single-origin serving are preserved. See
 [CI runs](https://github.com/KaizokuHam/kairopass/actions/workflows/ci.yml) for remote
 verification and [database architecture](docs/database.md) for data-integrity limits.
 
-Event management/discovery, reservation orchestration, simulated checkout, QR
-generation, check-in, and analytics remain upcoming. Task 05 is Event Management Backend.
+Task 05 adds six private organizer event endpoints for draft creation, scoped
+listing/detail, editing, publication, and safe cancellation. Strict input schemas,
+ownership filters, conditional writes, and a cancellation transaction preserve
+lifecycle and inventory rules. See [event API contracts](docs/events.md) and the
+[Task 05 acceptance record](docs/implementation-plan.md#task-05-acceptance-record).
+The clean-install quality gate passes **319 tests / 14 files**: **94 event
+integration tests**, **165 existing backend tests**, and **60 frontend tests**,
+plus lint, strict types, and both production builds.
+
+Event management frontend, public discovery, reservation orchestration, simulated
+checkout, QR generation, check-in, and analytics remain upcoming. Task 06 is Event
+Management Frontend; no event forms have been added in Task 05.
 [AGENTS.md](AGENTS.md) records the permanent stack and
 engineering rules for future sessions.
 

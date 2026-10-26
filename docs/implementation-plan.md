@@ -16,8 +16,8 @@ Submission deadline: **October 27, 2026, 11:59 PM IST**.
 | 02 | MongoDB + Mongoose Architecture, Database Migration & Data Integrity | Completed — implementation and local acceptance verified |
 | 03 | Authentication Backend | Completed — implementation and local acceptance verified |
 | 04 | Authentication Frontend, Protected Routing & User Experience | Completed — implementation and local acceptance verified |
-| 05 | Event Management Backend | Next — not implemented |
-| 06 | Event Management Frontend | Upcoming |
+| 05 | Event Management Backend | Completed — implementation and local acceptance verified |
+| 06 | Event Management Frontend | Next — not implemented |
 | 07 | Event Discovery | Upcoming |
 | 08 | Reservation Engine | Upcoming |
 | 09 | Simulated Payment Gateway | Upcoming |
@@ -186,3 +186,44 @@ cross-tab synchronization, background session renewal, password reset, OAuth,
 or account-settings workflow. Dashboards remain account shells; event management,
 discovery, reservations, payments, ticketing, check-in, and analytics are future
 work. Task 05 is ready to begin when separately authorized and is not implemented here.
+
+## Task 05 acceptance record
+
+Verified on **October 26, 2026 (IST)** with Node.js 24.14.0 and npm 11.9.0:
+
+| Check | Observed result |
+| --- | --- |
+| Dependency and repository baseline | Task 04 landed at fb4ec4e; clean main safely synchronized; baseline 225 tests, lint, types, and builds passed |
+| Module architecture | Routes/controllers/services/Zod/types/mapper; reused Event model, one Mongoose connection, existing auth/Origin/readiness guards |
+| Draft creation | Persisted owner from authenticated context, DRAFT, zero inventory; strict date/capacity/paise validation and protected-field rejection |
+| Organizer queries | Owned list/detail, bounded pagination, status filter, deterministic newest/oldest ordering, escaped literal search, explicit DTO and total metadata |
+| Editing | Complete merged-state and model validation; draft editing; published descriptive edits only; cancelled records immutable through API |
+| Publishing | Conditional DRAFT transition, valid future start/deadline, repeated/invalid transitions return 409 |
+| Cancellation | Zero counter plus defensive HELD/CONFIRMED checks in a snapshot transaction; no deletion, inventory mutation, refunds, or fake success |
+| Ownership and security | All mutations reject attendees/unauthed/untrusted Origins; missing/unowned resources return 404; current persisted role and revoked sessions enforced |
+| Concurrency | Controlled real-read barriers verify competing edits, edit/publish, publish/cancel, transaction retry, and real allocation-versus-cancellation safety |
+| Indexes | Additive eventId/status reservation lookup index verified in MongoDB; existing Event schema/indexes and reservation history constraints retained |
+| Event suite | 94 tests across 3 real integration files; controlled dates and owned disposable replica sets with ephemeral keys |
+| Regression suites | All 165 existing backend tests / 6 files and 60 frontend tests / 5 files passed |
+| Reproducible install | npm ci passed: 439 installed packages, no reported vulnerabilities |
+| Complete quality gate | npm run check passed: zero-warning lint, both strict TypeScript checks, 319 tests / 14 files, both production builds |
+| Compiled-server smoke | Real create/list/detail/edit/publish/cancel; private ownership, attendee rejection, CSRF, frozen economics, retained history, logout replay rejection, safe logs, frontend delivery |
+| Fail-closed smoke | Invalid JWT configuration and unavailable MongoDB each returned private event 503 while health and compiled frontend remained 200 |
+| Scope/artifact hygiene | Client unchanged from Task 04; public /api/events and DELETE absent; no secrets, environment files, dependencies, builds, or smoke helpers tracked |
+
+`npm run test:events` targets the new suites. `test:db`, `npm test`, the quality
+gate, and normal GitHub Actions CI include them. Temporary test/smoke servers
+own and stop their MongoDB instances; application/production data is never cleaned.
+
+Five coherent conventional commits cover draft creation, owned queries, lifecycle
+operations, concurrency/security coverage, and documentation. Final remote head,
+clean working tree, and the push-triggered CI conclusion are verified at delivery.
+See [GitHub Actions](https://github.com/KaizokuHam/kairopass/actions/workflows/ci.yml).
+
+Known limits: no event frontend or public discovery yet, no hard deletion,
+refund/cancellation orchestration, inventory repair, or reservation API. Optimistic
+checks protect overlapping server operations, not old browser forms submitted
+after another operation has already completed. Task 08 must update the same
+published event and insert reservations atomically for cross-module safety.
+Persistent use still requires an owned replica-set/Atlas database, generated JWT
+key, and correct origin settings. Task 06 can begin when separately authorized.
