@@ -9,10 +9,11 @@ import { requireTrustedOrigin } from '../../middleware/auth-csrf.js';
 import { ApiError } from '../../lib/api-error.js';
 import type { TicketConfig } from '../tickets/tickets.crypto.js';
 import * as controller from './checkin.controller.js';
-const errors: ErrorRequestHandler = (error: unknown, _req, res, next) => {
+const errors: ErrorRequestHandler = (error: unknown, req, res, next) => {
   if (error instanceof ApiError) { next(error); return; }
   if (env.LOG_LEVEL !== 'silent') console.error(JSON.stringify({ level: 'error', requestId: res.locals.requestId, message: 'Check-in operation could not be confirmed.' }));
-  next(new ApiError(503, 'CHECKIN_OUTCOME_UNKNOWN', 'Admission could not be confirmed. Check history or explicitly retry; do not assume approval.'));
+  next(req.method === 'GET' ? new ApiError(503, 'CHECKIN_HISTORY_UNAVAILABLE', 'Check-in history could not be loaded. Please retry.') :
+    new ApiError(503, 'CHECKIN_OUTCOME_UNKNOWN', 'Admission could not be confirmed. Check history or explicitly retry; do not assume approval.'));
 };
 export function createCheckInRouter(auth: AuthConfig | null, signing: TicketConfig | null) {
   const router = Router({ mergeParams: true });

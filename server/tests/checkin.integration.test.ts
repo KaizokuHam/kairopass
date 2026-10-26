@@ -183,6 +183,12 @@ describe('admission window and authoritative write clock', () => {
   });
 });
 describe('private bounded check-in history and HTTP guards', () => {
+  it('reports a failed history read without implying an admission mutation or fake empty success', async () => {
+    const f = await fixture(), aggregate = Reservation.aggregate.bind(Reservation);
+    vi.spyOn(Reservation, 'aggregate').mockImplementationOnce((...args) => { const query = aggregate(...args); vi.spyOn(query, 'exec').mockRejectedValueOnce(new Error('private history failure')); return query; });
+    const response = await history(f).expect(503); expect(response.body.error.code).toBe('CHECKIN_HISTORY_UNAVAILABLE'); expect(response.text).not.toContain('private history failure');
+    await invariants(f, 0); await history(f).expect(200);
+  });
   it('returns empty history without any read-driven mutation', async () => {
     const f = await fixture(), before = await Ticket.findById(f.first.ticketId).lean(); const response = await history(f).expect(200);
     expect(response.body.data.checkIns).toEqual([]); expect(response.body.data.pagination.total).toBe(0); expect(response.body.data.window.state).toBe('OPEN'); expect(response.headers['cache-control']).toBe('no-store'); expect(await Ticket.findById(f.first.ticketId).lean()).toEqual(before);
