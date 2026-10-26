@@ -9,6 +9,11 @@ import { DashboardPage } from '@/pages/DashboardPage';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { PublicOnlyRoute } from '@/components/auth/PublicOnlyRoute';
 import { RoleGuard } from '@/components/auth/RoleGuard';
+import { OrganizerLayout } from '@/layouts/OrganizerLayout';
+import { OrganizerEventsPage } from '@/pages/organizer/OrganizerEventsPage';
+import { CreateEventPage } from '@/pages/organizer/CreateEventPage';
+import { EditEventPage } from '@/pages/organizer/EditEventPage';
+import { OrganizerEventDetailsPage } from '@/pages/organizer/OrganizerEventDetailsPage';
 
 export function App() {
   return (
@@ -19,7 +24,10 @@ export function App() {
         <Route element={<PublicOnlyRoute />}><Route path="login" element={<LoginPage />} /><Route path="register" element={<RegisterPage />} /></Route>
         <Route element={<ProtectedRoute />}>
           <Route element={<RoleGuard role="ATTENDEE" />}><Route path="attendee/dashboard" element={<DashboardPage role="ATTENDEE" />} /></Route>
-          <Route element={<RoleGuard role="ORGANIZER" />}><Route path="organizer/dashboard" element={<DashboardPage role="ORGANIZER" />} /></Route>
+          <Route element={<RoleGuard role="ORGANIZER" />}><Route path="organizer/dashboard" element={<DashboardPage role="ORGANIZER" />} />
+            <Route path="organizer/events" element={<OrganizerLayout />}><Route index element={<OrganizerEventsPage />} /><Route path="new" element={<CreateEventPage />} />
+              <Route path=":id" element={<OrganizerEventDetailsPage />} /><Route path=":id/edit" element={<EditEventPage />} /></Route>
+          </Route>
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Route>
