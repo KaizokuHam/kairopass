@@ -35,13 +35,15 @@ Production:  browser -> Express -> /api routes -> module services -> Mongoose ->
 The implemented auth module owns routes, controllers, services, Zod validation,
 token/password utilities, and typed authenticated request context. The events
 module owns private organizer event management; discovery owns public upcoming
-listing/detail reads and their strict query/public-DTO boundary. Future modules are reservations,
+listing/detail reads and their strict query/public-DTO boundary. Reservations owns
+attendee allocation/history/cancellation and transactional expiry. Future modules are
 payments, tickets/check-in, and analytics. Each owns its router, Zod request validation, service rules,
 and persistence operations. Routes should translate HTTP; services should enforce
 business invariants. Modules will call explicit service contracts instead of
 reaching into each other's controllers. Task 03 adds only the four `/api/auth`
-endpoints; Task 05 adds `/api/organizer/events`; Task 07 adds `/api/events`.
-Booking, payment, and ticket controllers remain later work.
+endpoints; Task 05 adds `/api/organizer/events`; Task 07 adds `/api/events`;
+Task 08 adds `/api/reservations`. Payment and ticket controllers remain later work.
+See [reservation transaction and worker contracts](reservations.md).
 
 ## Deployment and API
 
@@ -56,7 +58,7 @@ Production requires a prior frontend build. The health endpoint is liveness only
 not database readiness, and must work without a database. `/api/ready` returns 503
 until a transactional MongoDB connection and its required indexes are verified,
 and a bounded ping succeeds. Startup failure is reported explicitly while
-liveness stays available. Auth, events, discovery, and future database-backed routers use `requireDatabase`.
+liveness stays available. Auth, events, discovery, reservations, and future database-backed routers use `requireDatabase`.
 Readiness retains its database-only meaning; auth configuration is checked separately.
 
 The error contract is `{ success: false, error: { code, message, requestId } }`.
@@ -92,8 +94,8 @@ metadata are available to UI; raw backend exception messages are never displayed
 Public-only login/register routes redirect verified users to their own dashboard.
 `ProtectedRoute` gates unresolved sessions and sends confirmed guests to login;
 `RoleGuard` renders an access-denied view for the other role. Return destinations
-are allowlisted to the verified role's dashboard and implemented organizer event
-routes, with safe query/hash preservation. Frontend guards are navigation UX; server role/ownership checks
+are allowlisted to the verified role's dashboard and implemented organizer/attendee
+routes, plus public event details, with safe query/hash preservation. Frontend guards are navigation UX; server role/ownership checks
 remain mandatory for every future protected API resource.
 
 Routing uses `useTransitions={false}` so confirmed logout can navigate to `/`
@@ -166,7 +168,7 @@ outcomes prompt review before retry. Background content is inert during modals,
 keyboard focus is trapped/restored, and pending controls cannot repeat actions.
 
 The organizer dashboard fetches only three recent events and the API total.
-Other metrics are omitted. Public discovery is provided by Task 07; booking remains later work.
+Other metrics are omitted. Public discovery is provided by Task 07; attendee booking by Task 08.
 No backend/auth/database changes are needed for Task 06. See
 [event frontend contracts and limitations](events.md#organizer-frontend-task-06).
 
@@ -184,12 +186,19 @@ Public React routes sit outside session/role gates, reuse typed HTTP requests an
 shared price/date utilities, and keep applied query state in the URL. Search is
 debounced; resource/attempt keys, abort controllers, and generations prevent stale
 results. List/detail availability uses actual inventory and updates known clock
-boundaries, while every reservation control remains disabled for Task 08. Navigation
+boundaries. Task 08's real Reserve action revalidates in its transaction. Navigation
 and attendee discovery actions use real routes. Public browsing remains independent
 of JWT configuration; private management retains all existing guards. See
 [discovery architecture, contracts, and limits](discovery.md).
 
 ## Persistence and data integrity
+
+Task 08's expiration worker is constructed without timers on import. Server startup
+starts it after database/index readiness; one bounded batch runs initially and once
+per minute. Shutdown stops scheduling immediately while HTTP drains, awaits the
+current cleanup operation, then disconnects the shared database connection.
+Conditional state transitions protect multiple worker instances; see
+[reservation operations and limits](reservations.md#expiration-cancellation-and-process-lifecycle).
 
 MongoDB + Mongoose is the permanent authorized database layer. Models define
 document validation, explicit unique/partial indexes, and cryptographic nonce
@@ -202,12 +211,13 @@ payment identities/idempotency keys, and ticket reservation/nonce associations.
 References do not enforce existence, ownership, or roles. Mongoose document
 validation cannot protect every query update or cross-document invariant.
 
-Task 08 will allocate/release inventory with conditional event updates and MongoDB
-transactions. `reservedCount` tracks HELD + CONFIRMED allocations. Expiration must
-transition elapsed holds explicitly and decrement capacity exactly once; no TTL
+Task 08 allocates/releases inventory with conditional event updates and MongoDB
+transactions. `reservedCount` tracks HELD + CONFIRMED allocations. Expiration
+transitions elapsed holds explicitly and decrements capacity exactly once; no TTL
 deletes reservation history. Task 09 will confirm simulated payment/reservation
 states atomically; Tasks 10/11 will issue one ticket and conditionally consume it
-once. These workflows are designed, not implemented in Task 02.
+once. Payment/ticket workflows remain planned. See [reservations.md](reservations.md)
+for implemented transaction deadlines, recovery, worker lifecycle and attendee UX.
 
 See [database architecture](database.md) for complete fields/indexes, model limits,
 transaction examples, expiration/idempotency strategies, QR signing, and local/Atlas setup.

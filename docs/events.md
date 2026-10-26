@@ -3,7 +3,8 @@
 Task 05 implements a private organizer API. Task 06 connects the organizer
 dashboard, event forms, list/detail pages, and confirmed lifecycle actions.
 Task 07 adds separate [public discovery](discovery.md) endpoints and pages.
-Reservation allocation/expiration (08), payments, and ticketing remain future work.
+Task 08 adds [reservation allocation, expiration and attendee cancellation](reservations.md).
+Payments and ticketing remain future work.
 There is no hard-delete endpoint. Public visibility never changes private ownership.
 
 ## Access and model
@@ -199,12 +200,18 @@ transaction retry re-reads state and rechecks safety after write conflicts. Two
 overlapping actions may both succeed when they serialize legally (for example,
 publish followed by cancellation); they cannot restore an older state.
 
-Task 08 must allocate inventory and insert a reservation in one transaction,
+Task 08 allocates inventory and inserts a reservation in one transaction,
 conditionally updating this same event only while PUBLISHED/open with capacity.
 That shared event write serializes allocation against cancellation: the losing
 transaction retries its safety checks. Inserting reservations without that event
 write, or raw out-of-band database edits, bypasses this application contract and
 is unsupported. Cancellation never repairs mismatched inventory automatically.
+
+Real booking-versus-cancellation HTTP races, lazy expiration, and consistent-snapshot
+inventory assertions are included in `npm run test:reservations`. An elapsed HELD
+record remains active until that module explicitly expires it. Reservation release
+does not cancel the Event; once all units are released, the organizer may reload
+and use the existing cancellation action. See [reservations.md](reservations.md).
 
 References: [MongoDB atomic updates](https://www.mongodb.com/docs/manual/core/write-operations-atomicity/),
 [transaction write conflicts](https://www.mongodb.com/docs/v8.0/core/transactions-production-consideration/),
@@ -259,7 +266,7 @@ by the server; a missing or unowned event produces the same safe not-found view.
 | `/organizer/events/:id/edit` | Shared form for draft/descriptive published edits; cancelled events remain read-only |
 
 OrganizerLayout and OrganizerSidebar extend the established dark product shell.
-My Events and Create Event are functional on desktop and mobile. Registrations,
+My Events and Create Event are functional on desktop and mobile. Attendee insights,
 check-in, and analytics remain clearly labeled future modules. Dashboard recent
 events use a bounded `limit=3` request; total comes from pagination metadata.
 No draft/published counts, revenue, or attendance statistics are invented.

@@ -22,8 +22,8 @@ guests, and understand attendance.
 5. Organizer analytics and reporting.
 
 Payments will be simulated. No real card processing or real payment collection
-is planned. Public discovery is available; booking, payments, and ticketing remain
-upcoming after Task 07.
+is planned. Public discovery and ten-minute ticket reservations are available.
+Payment processing, confirmation, and digital tickets remain upcoming after Task 08.
 
 ## Stack and architecture
 
@@ -78,6 +78,7 @@ The `/api` proxy continues to target `http://127.0.0.1:4000`.
 | `npm run test:auth` | Run authentication unit and real HTTP integration tests |
 | `npm run test:events` | Run event ownership, validation, lifecycle, and concurrency integration tests |
 | `npm run test:discovery` | Run public visibility, search, filtering, and pagination integration tests |
+| `npm run test:reservations` | Run real allocation, expiry, cancellation, ownership, and concurrency tests |
 | `npm run test:watch` | Run backend tests in watch mode |
 | `npm run build` | Compile client and server |
 | `npm run check` | Run lint, type checks, tests, and builds |
@@ -147,6 +148,7 @@ MongoDB deployment; the liveness endpoint remains independent.
 │   │   ├── modules/auth/       # Routes, controllers, services, validation, JWT/password utilities
 │   │   ├── modules/events/     # Private organizer event management, lifecycle, and DTOs
 │   │   ├── modules/discovery/  # Public upcoming-event search, filtering, pagination, and safe DTOs
+│   │   ├── modules/reservations/ # Atomic holds, owned history, cancellation and expiry worker
 │   │   ├── models/             # Five business models plus AuthSession and verified indexes
 │   │   ├── types/              # Public response DTOs
 │   │   ├── middleware/         # Logging, errors, API 404
@@ -216,7 +218,8 @@ read application `MONGODB_URI` for data cleanup.
 | `/`, `/vision` | Public overview and roadmap |
 | `/events`, `/events/:id` | Public upcoming marketplace and event details; no sign-in required |
 | `/login`, `/register` | Accessible forms; authenticated users return to their own dashboard |
-| `/attendee/dashboard` | Attendee account overview and Explore Events navigation; reservations/tickets upcoming |
+| `/attendee/dashboard` | Attendee account overview, Explore Events and My Reservations navigation |
+| `/attendee/reservations`, `/attendee/reservations/:id` | Protected attendee history, hold countdown, and cancellation |
 | `/organizer/dashboard` | Account overview, live recent events, functional event-management navigation |
 
 Registration signs the user in immediately using the real API response. Refresh
@@ -232,6 +235,16 @@ does not read cookies or use browser storage. See the
 [frontend architecture and recovery behavior](docs/authentication.md#frontend-session-and-routing).
 
 ## Implementation status
+
+**Current milestone: Task 08 implemented.** Attendees can reserve one ticket for
+ten minutes, view retained history, and cancel a valid hold. MongoDB transactions
+allocate/release capacity atomically, an explicit minute worker and lazy cleanup
+expire holds, and duplicate requests return the original valid hold. Every new
+reservation remains HELD, including free events. No payment or ticket is created.
+See [reservation APIs, invariants and recovery](docs/reservations.md) and the
+[Task 08 acceptance record](docs/implementation-plan.md#task-08-acceptance-record).
+The local quality gate passes **612 tests / 27 files** (244 frontend, 368 backend),
+lint, strict types and both builds. Earlier milestone records below are historical.
 
 Tasks 01–02 establish the application and MongoDB foundation. Task 03 adds the
 four authentication endpoints, Argon2id passwords, revocable JWT sessions,
@@ -287,10 +300,9 @@ publication-to-discovery lifecycle, cancellation exclusion/history, anonymous an
 attendee access, queries/pagination, and responsive layouts. Compiled-server checks
 also verify public access without JWT configuration and safe database failures.
 
-Reservation orchestration, simulated checkout, QR generation, check-in, and
-analytics remain upcoming. Task 08 is Reservation Engine, Atomic Inventory
-Management & Expiring Ticket Holds. Reservations remain visibly unavailable;
-displayed capacity never guarantees allocation.
+Task 08 adds reservation orchestration, atomic inventory and expiring holds.
+Simulated checkout, QR generation, check-in, and analytics remain upcoming.
+Displayed public capacity never guarantees allocation.
 [AGENTS.md](AGENTS.md) records the permanent stack and
 engineering rules for future sessions.
 

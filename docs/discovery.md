@@ -3,7 +3,8 @@
 Visitors, attendees, and organizers can browse persisted published events without
 signing in. `/events` and `/events/:id` use the same Express/Mongoose application
 as private organizer management. There are no production event fixtures, image
-uploads, popularity metrics, reservation writes, or fake booking confirmations.
+uploads, popularity metrics, or fake booking confirmations. Task 08 adds real
+[reservation writes](reservations.md) through a separate protected attendee API.
 
 ## Architecture and visibility
 
@@ -164,10 +165,11 @@ Availability precedence is deterministic:
 An availability clock updates known time boundaries while the page stays open
 and when the tab becomes visible. Inventory/status remain the latest loaded
 snapshot; refresh/navigation revalidates visibility, and a cancelled event becomes
-not found. Device clock skew can affect labels. **Reservations coming soon** is
-disabled for every state. No reservation, payment, ticket, or success workflow exists.
-Task 08 must authoritatively revalidate publication, time, deadline, and inventory
-inside its allocation transaction; these labels never authorize a reservation.
+not found. Device clock skew can affect public labels. Task 08 replaces the disabled
+placeholder with Sign in to Reserve / Reserve Ticket, an organizer restriction, or
+disabled unavailable controls. Allocation authoritatively revalidates publication,
+time, deadline and inventory inside its transaction; these labels never authorize
+a reservation. Payment and ticket workflows remain separate future work.
 
 Public navigation, the existing home exploration CTA, and the attendee dashboard
 link to /events. Sign-in/account controls remain role-aware. Responsive layouts
@@ -182,16 +184,16 @@ Use Node.js 24.14+ / npm 11+ and the repository commands:
 ```sh
 npm ci
 npm run test:discovery # 52 real HTTP/MongoDB integration tests
-npm run test:web       # 199 frontend tests, including 63 new discovery tests
+npm run test:web       # All frontend tests, including discovery and reservations
 npm run test:db        # Discovery plus existing model/auth/organizer integrations
-npm run check         # Lint, both type checks, all 512 tests, both builds
+npm run check         # Lint, both type checks, all tests, both builds
 ```
 
 Two additional disconnected public-route checks complement the discovery suite:
 54 new backend tests in total. Existing regressions stay active. Previous assertions
 that /api/events was unimplemented now check its private-draft exclusion instead;
-future reservation writes and hard deletion remain absent. The old attendee
-placeholder assertion now verifies working links and unavailable reservations/tickets.
+hard deletion remains absent. Task 08 separately verifies real reservation writes
+and attendee navigation; tickets remain unavailable until Task 10.
 
 Tests own unique disposable MongoDB 8.2.6 replica sets and never consume application
 MONGODB_URI for cleanup. Frontend tests replace only fetch, exercising actual
@@ -202,5 +204,9 @@ Real browser and compiled-server evidence is recorded in the
 Persistent use requires an owned replica set/Atlas configuration; sign-in/management
 also require valid JWT/Origin configuration. Tests provision no production database
 or signing secret. No images, categories, geo-search, recommendations, historical
-public pages, live inventory push, cursor search, booking, payment, or ticketing
-are included in this milestone. These are explicit scope limits, not fake controls.
+public pages, live inventory push, cursor search, payment, or ticketing are included
+in this discovery module. Actual reservation allocation is implemented separately
+in Task 08. Public sold-out snapshots can lag expiration until cleanup or an
+authoritative reservation request reconciles inventory; explicit refresh rereads
+the Event. The [Task 08 record](implementation-plan.md#task-08-acceptance-record)
+contains current full-suite and booking/browser verification.

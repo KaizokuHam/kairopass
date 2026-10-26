@@ -20,8 +20,8 @@ Submission deadline: **October 27, 2026, 11:59 PM IST**.
 | 06 | Event Management Frontend | Completed — implementation and local acceptance verified |
 | 07 | Event Discovery | Completed — implementation and local acceptance verified |
 | 07.5 | Mid-project engineering and rubric audit | Completed — see rubric-audit.md for findings and verification |
-| 08 | Reservation Engine | Next — not implemented |
-| 09 | Simulated Payment Gateway | Upcoming |
+| 08 | Reservation Engine | Completed — implementation and local acceptance verified |
+| 09 | Simulated Payment Gateway | Next — not implemented |
 | 10 | QR Ticketing | Upcoming |
 | 11 | Ticket Check-In | Upcoming |
 | 12 | Organizer Analytics | Upcoming |
@@ -330,3 +330,65 @@ Ready for **Task 08/14 — Reservation Engine, Atomic Inventory Management & Exp
 Ticket Holds** when separately authorized. Every actual allocation must revalidate
 event status, times, deadline, and inventory transactionally; discovery labels are
 never booking authority. Task 08 has not been started.
+
+## Task 08 acceptance record
+
+Verified on **October 26, 2026 (Asia/Calcutta)** with Node.js 24.14.0 and npm 11.9.0.
+This record supersedes earlier forward-looking reservation placeholders.
+
+| Check | Observed result |
+| --- | --- |
+| Repository/prerequisites | Verified KaizokuHam/kairopass, synchronized main at 57781d1; audit CI was successful; no conflicting edits; clean-install 522-test baseline passed |
+| Reproducible installation | npm ci: 439 installed, 442 audited, zero vulnerabilities; no new dependencies |
+| API/auth/ownership | Four attendee-only readiness/session/current-role guarded endpoints; POST exact-Origin protection; strict bodies/query/IDs; missing/unowned resource 404; safe explicit DTOs and no-store |
+| Allocation | One unit per HELD; server creation + 600000 ms; immutable database price; future/PUBLISHED/open checks; conditional `$expr` capacity increment and insertion in one majority transaction |
+| Retry/recovery | Driver retries within an 8-second total transaction deadline; duplicate winner recovered by read; forced real commit followed by lost response returns uncertain 503 and history resolves it |
+| Expiration/cancellation | Conditional terminal transition and release commit together; repeated cancellation/cleanup harmless; due cancellation resolves EXPIRED; CONFIRMED remains allocated and cannot be cancelled here |
+| Worker | Explicit startup after readiness, initial/minute batches, 50-candidate bound, one in-flight batch, multi-instance-safe transitions, no import timer, cooperative stop and real in-flight transaction drain |
+| Lazy/history reads | Up to 100 due event holds plus own elapsed hold; owned detail reconciliation; bounded owned history reconciliation, newest stable pagination/filter; terminal missing-event history retained |
+| 1 ticket / 20 requests | Exactly 1 new hold, 19 EVENT_SOLD_OUT conflicts, counter and active count both 1 |
+| 5 tickets / 20 requests | Exactly 5 new holds, 15 EVENT_SOLD_OUT conflicts, counter and active count both 5 |
+| Same user / 20 requests | Exactly 1 creation + 19 existing-hold responses; one ID, one unchanged expiry, one unit |
+| Double expiration | One true transition and one no-op; one retained EXPIRED record, counter 0 |
+| Cancel versus expiry | Returned EXPIRED, one release, repeat cancel harmless, counter 0 |
+| Booking versus organizer cancel | One legal winner; either published event with one hold or cancelled event with none; both cannot commit inconsistent state |
+| Rollback/price/confirmed | Forced insert failure leaves 0 allocations; exact maximum safe paise retained after later changes; free allocation remains HELD; controlled confirmed fixture survives cleanup without a ticket |
+| Invariant proof | Same-snapshot comparisons of Event counter and HELD+CONFIRMED counts after booking/rejection/cancel/expiry/races/rollback; corrupted counter fails closed without repair |
+| Frontend | Real Reserve + safe login return, attendee role guards, typed API and scoped reads/mutations, history/status/pagination, details/countdown, accessible cancellation and dashboard links |
+| Recovery/isolation | Unknown POST outcomes prompt history checks; no automatic mutation retry or optimistic booking; obsolete GETs aborted/ignored; 401 revalidates, DB 503 preserves session; logout hides private data |
+| Frontend regression coverage | 43 new HTTP-boundary/interaction cases; old discovery/dashboard placeholder assertions updated for implemented behavior; 244 frontend tests total |
+| Backend regression coverage | 47 new real HTTP/replica-set cases; all 321 previous backend tests retained; 368 backend tests total |
+| Complete quality gate | npm run check: lint with zero warnings, strict types in both workspaces, 612 tests across 27 files, both production builds; no failing/skipped cases |
+| Real browser capacity 2 | Organizer created/published paid event; A/B filled it; C saw sold out/zero capacity; A cancelled; C saw one place and reserved it |
+| Real browser expiry/history | Owned test fixture elapsed C's hold; actual GET confirmed EXPIRED and release; C reserved again; own list retained expired + current hold and status filter worked; DB showed 2 HELD + 1 CANCELLED + 1 EXPIRED, reservedCount 2 |
+| Browser responsive/accessibility | 1440 desktop, 768 tablet, 375 mobile; no horizontal overflow; mobile cancellation dismissed safely with focus return; no captured warn/error console logs; screenshots retained in ignored artifacts |
+| Compiled production smoke | Real capacity-two workflow produced third-attendee 409 EVENT_SOLD_OUT; owned 404, original hold/price/deadline, cancel/reuse, revoked-session rejection, Secure/HttpOnly cookies, SPA routes/assets, safe logs |
+| Autonomous compiled worker | Controlled due fixture became EXPIRED through the actual minute worker without a reservation GET; one inventory release, next hold/history preserved, no payment/ticket records |
+| Compiled failure/shutdown checks | Invalid JWT and unavailable DB gave reservation 503 while health/frontend/assets stayed available; real server shutdown listener drained worker/database and exited cleanly through a Windows-compatible test wrapper |
+| Artifact/scope hygiene | No new production fixtures, secrets, environment files, generated output, dependencies, screenshots or temporary smoke/preview helpers tracked; no Task 09–12 workflow added |
+
+The focused `npm run test:reservations`, `test:db`, normal `npm test`, and CI include
+the new backend suite. Every database test owns a unique disposable MongoDB 8.2.6
+replica set and ignores application MONGODB_URI for cleanup. Browser/compiled smoke
+use owned disposable accounts/databases and ephemeral signing keys. Preview processes
+and browser viewport/tab overrides were cleaned up.
+
+Coherent conventional commits cover the atomic engine, resilience/batches, typed
+client, attendee screens/navigation, HTTP-boundary frontend regressions, shutdown
+coordination and documentation. Final remote SHA, clean tree and exact-revision
+push-triggered CI conclusion are verified at delivery; see
+[GitHub Actions](https://github.com/KaizokuHam/kairopass/actions/workflows/ci.yml).
+
+Known limits: cleanup is a process-local best-effort scheduler (50 per batch per
+minute), can lag under backlog/outage, and needs monitoring/capacity planning in a
+real deployment. Corruption fails closed and requires investigation. Listing large
+overdue histories may return a documented retryable 503 after bounded progress.
+Public inventory remains a snapshot. Production Atlas/HTTPS/proxy/load verification
+remains a release task; local smoke is not a hosted deployment. No checkout, payment
+attempts/confirmation (including free events), refunds, tickets/QR, check-in or
+analytics are implemented. Payment processing is explicitly marked as the next milestone.
+
+Ready for **Task 09/14 — Simulated Payment Gateway, Idempotency, Payment Retries &
+Reservation Confirmation** when separately authorized. It must require HELD and
+expiresAt > server now, retain the allocated unit/price/original deadline, and race
+transactionally with expiry/cancellation. See [the reservation contract](reservations.md).

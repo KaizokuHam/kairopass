@@ -149,9 +149,35 @@ models, indexes, inventory, payments, tickets, or connection behavior.
   preserve inclusive exact-instant from/through semantics. No silent day expansion.
 - Availability precedence: unavailable start/status, closed deadline, sold out,
   otherwise open. Update known time boundaries; re-read server data on refresh.
-- Reservation CTA stays disabled until actual Task 08 allocation exists; no fake
-  booking, success, image artwork, reviews, recommendations, or popularity counts.
+- Reservation CTA uses Task 08's actual attendee allocation; no fake booking,
+  payment success, image artwork, reviews, recommendations, or popularity counts.
 - Preserve real MongoDB visibility/query tests and frontend HTTP-boundary tests.
+
+## Reservation contract (Task 08)
+
+- Read `docs/reservations.md` before changing inventory, expiry or implementing Task 09.
+- Reuse `modules/reservations`, the current single connection, session/role/Origin
+  guards, explicit DTOs, and attendee-scoped client hooks. No reservation browser storage.
+- One hold is one unit; server creation + 600000 ms; stored event price is immutable.
+  All new holds, including free events, stay HELD. No automatic free confirmation.
+- Allocation/release must update the same Event in their reservation transaction;
+  preserve `$expr` capacity checks, version increments, rollback and active uniqueness.
+- Check the counter against HELD + CONFIRMED in a consistent snapshot; fail closed
+  on corruption. No TTL deletion, underflow clamp, casual repair or history removal.
+- Only the winning conditional HELD transition releases inventory. Keep minute
+  worker/lazy cleanup bounded, multi-instance safe, independently callable and
+  explicitly started/stopped by server lifecycle; no import-time timers.
+- Preserve the driver's bounded total transaction deadline and appropriate labelled
+  retries. No side effects or parallel operations in one session; never blindly
+  retry a duplicate insert or report an unresolved commit as success/failure.
+- Frontend must check owned history after uncertain POSTs, abort obsolete reads,
+  hide old identity data, and refetch after cancellation. Do not retry mutations automatically.
+- Countdown is informational and uses server time; at zero disable hold actions and
+  read the authoritative state before displaying EXPIRED. Reuse accessible dialogs.
+- Task 09 confirmation must conditionally require HELD and expiresAt > server now,
+  retain the existing unit/amount/deadline, and race safely with expiry/cancellation.
+- `npm run test:reservations` owns a disposable replica set; CI/full tests include
+  real 20-request capacity/duplicate races, exactly-once release and rollback checks.
 
 ## Verification and Git
 
@@ -171,6 +197,7 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - `npm run test:auth` runs authentication unit and real HTTP/replica-set tests with ephemeral keys.
 - `npm run test:events` runs event integration suites; `test:db` also includes them.
 - `npm run test:discovery` runs public visibility/query integrations; `test:db` includes them.
+- `npm run test:reservations` runs reservation HTTP/replica-set races, expiry and history; `test:db` includes it.
 - `npm run test:web` runs frontend tests; `npm test` and CI include both workspaces.
 - `npm run test:watch -w client` watches frontend tests; root `test:watch` watches backend tests.
 - Keep changes small and coherent; use conventional commits and the configured authorized Git identity.
@@ -186,7 +213,7 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - 05 — Event Management Backend (implemented; see verification record)
 - 06 — Event Management Frontend (implemented; see verification record)
 - 07 — Event Discovery (implemented; see verification record)
-- 08 — Reservation Engine
+- 08 — Reservation Engine (implemented; see verification record)
 - 09 — Simulated Payment Gateway
 - 10 — QR Ticketing
 - 11 — Ticket Check-In
@@ -195,5 +222,5 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - 14 — Production Release & Documentation
 
 Future tasks must continue using MongoDB/Mongoose. Implement only the task the
-user authorizes. Task 07 public discovery is implemented. Task 08 is the next
-reservation milestone; booking/payment/ticket workflows require their own authorization.
+user authorizes. Tasks 07 discovery and 08 reservations are implemented. Task 09
+payment/confirmation is the next milestone and requires separate authorization.

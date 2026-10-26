@@ -114,8 +114,8 @@ HTTP boundaries; raw collection writes can bypass Mongoose normalization.
 
 Inventory invariant: `reservedCount` equals capacity allocated to reservations
 whose persisted state is HELD or CONFIRMED. It does not count historical EXPIRED
-or CANCELLED records. A one-ticket reservation occupies one unit. Task 08 must
-maintain this invariant within transactions; saving a reservation does not mutate
+or CANCELLED records. A one-ticket reservation occupies one unit. Task 08
+maintains this invariant within transactions; saving a reservation does not mutate
 the event automatically. Changing capacity must not lower it below occupied inventory.
 
 Task 05's [organizer API](events.md) validates stricter input bounds (including
@@ -124,7 +124,7 @@ Its conditional query updates explicitly compare/increment the internal version
 and preserve reservedCount. Publication freezes dates, capacity, and price.
 Cancellation checks both occupied inventory and active reservation records in a
 transaction and retains event/history documents. Raw writes do not enforce these
-service policies; Task 08 must coordinate inventory writes on the same event.
+service policies; Task 08 coordinates inventory writes on the same event.
 
 ### Reservation (`reservations`)
 
@@ -141,8 +141,9 @@ An attendee may have only one active (HELD or CONFIRMED) reservation for an even
 Any number of EXPIRED/CANCELLED historical records can coexist with a newer active
 reservation. Time passing does not change a document's status. A past-deadline
 HELD record continues occupying its index slot until explicit expiration logic
-transitions it. Task 02 does not run an expiration worker and exposes no booking
-endpoint; Task 08 must reconcile this before admitting new allocations.
+transitions it. Task 08 adds an explicit minute worker, lazy booking reconciliation,
+owned history/detail reconciliation, and cancellation. See [reservations.md](reservations.md)
+for the API, transaction/retry, batch, invariant and Task 09 contracts.
 
 ### PaymentAttempt (`paymentattempts`)
 
@@ -208,6 +209,9 @@ All collections also have MongoDB's `_id` index.
 | Reservation / `reservation_active_user_event_unique` | userId: 1, eventId: 1 | Unique only where status is in HELD/CONFIRMED |
 | Reservation / `reservation_expiration_scan` | status: 1, expiresAt: 1 | Find elapsed holds for explicit cleanup; **not TTL** |
 | Reservation / `reservation_event_status` | eventId: 1, status: 1 | Task 05 cancellation checks for active bookings despite an inconsistent counter |
+| Reservation / `reservation_event_expiry` | eventId: 1, status: 1, expiresAt: 1, _id: 1 | Task 08 bounded event lazy expiration |
+| Reservation / `reservation_user_history` | userId: 1, createdAt: -1, _id: -1 | Owned stable newest-first history |
+| Reservation / `reservation_user_expiry` | userId: 1, status: 1, expiresAt: 1 | Owned elapsed-hold reconciliation |
 | PaymentAttempt / `payment_transaction_unique` | transactionId: 1 | Unique transaction identity |
 | PaymentAttempt / `payment_idempotency_unique` | reservationId: 1, idempotencyKey: 1 | Deduplicate retries for the same reservation |
 | PaymentAttempt / `payment_reservation_history` | reservationId: 1, createdAt: -1 | Ordered retry/payment history |
@@ -244,9 +248,12 @@ on optimistic document-save concurrency to protect a query update. Do not permit
 replacement/raw updates to price snapshots, identity fields, or nonce values.
 See [Mongoose validation](https://mongoosejs.com/docs/validation.html).
 
-## Planned transactional workflows (not implemented in Task 02)
+## Transactional workflows (introduced after Task 02)
 
 ### Reservation allocation — Task 08
+
+Implemented by the reservation module. Its precise current behavior and bounded
+retry/reconciliation policy are documented in [reservations.md](reservations.md).
 
 Use a session and `withTransaction()` on a replica set. Within one transaction:
 
