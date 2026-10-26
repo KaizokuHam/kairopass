@@ -16,6 +16,7 @@ import { createReservationsRouter } from './modules/reservations/reservations.ro
 import { createPaymentsRouter } from './modules/payments/payments.routes.js';
 import { parseTicketEnvironment, type TicketConfig } from './modules/tickets/tickets.crypto.js';
 import { createTicketIssuanceRouter, createTicketsRouter } from './modules/tickets/tickets.routes.js';
+import { createCheckInRouter } from './modules/checkin/checkin.routes.js';
 
 interface AppOptions {
   mode?: 'development' | 'test' | 'production';
@@ -70,12 +71,13 @@ export function createApp(options: AppOptions = {}) {
   } catch {
     authConfig = null; // Fail closed for auth while preserving independent liveness.
   }
-  app.use('/api/auth', createAuthRouter(authConfig));
-  app.use('/api/organizer/events', createEventsRouter(authConfig));
-  app.use('/api/events', createDiscoveryRouter());
   let ticketConfig: TicketConfig | null;
   try { ticketConfig = parseTicketEnvironment({ ...(options.authEnvironment ?? process.env), TICKET_HMAC_SECRET: (options.ticketEnvironment ?? options.authEnvironment ?? process.env).TICKET_HMAC_SECRET }); }
   catch { ticketConfig = null; }
+  app.use('/api/auth', createAuthRouter(authConfig));
+  app.use('/api/organizer/events/:eventId/check-ins', createCheckInRouter(authConfig, ticketConfig));
+  app.use('/api/organizer/events', createEventsRouter(authConfig));
+  app.use('/api/events', createDiscoveryRouter());
   app.use('/api/reservations/:id/ticket', createTicketIssuanceRouter(authConfig, ticketConfig));
   app.use('/api/tickets', createTicketsRouter(authConfig, ticketConfig));
   app.use('/api/reservations/:id/payments', createPaymentsRouter(authConfig));

@@ -10,13 +10,14 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:unit": "vitest run --exclude \"tests/*.integration.test.ts\"",
-    "test:db": "vitest run tests/database.integration.test.ts tests/auth.integration.test.ts tests/events tests/discovery tests/reservations tests/payments tests/tickets.integration.test.ts",
+    "test:db": "vitest run tests/database.integration.test.ts tests/auth.integration.test.ts tests/events tests/discovery tests/reservations tests/payments tests/tickets.integration.test.ts tests/checkin.integration.test.ts",
     "test:auth": "vitest run tests/auth",
     "test:events": "vitest run tests/events",
     "test:discovery": "vitest run tests/discovery",
     "test:reservations": "vitest run tests/reservations",
     "test:payments": "vitest run tests/payments",
     "test:tickets": "vitest run tests/tickets",
+    "test:checkin": "vitest run tests/checkin",
     "test:watch": "vitest"
   },
   "dependencies": {
