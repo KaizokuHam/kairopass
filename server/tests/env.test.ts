@@ -19,6 +19,17 @@ describe('environment configuration', () => {
     });
   });
 
+  it('defaults production to a network-reachable interface while honoring the platform port', () => {
+    expect(parseEnvironment({ NODE_ENV: 'production', PORT: '8080' })).toMatchObject({ HOST: '0.0.0.0', PORT: 8080 });
+    expect(parseEnvironment({ NODE_ENV: 'test' }).HOST).toBe('127.0.0.1');
+  });
+
+  it('preserves an explicitly configured bind address in production', () => {
+    expect(parseEnvironment({ NODE_ENV: 'production', HOST: '127.0.0.1' }).HOST).toBe('127.0.0.1');
+    expect(parseEnvironment({ NODE_ENV: 'production', HOST: '::' }).HOST).toBe('::');
+    expect(() => parseEnvironment({ NODE_ENV: 'production', HOST: '' })).toThrow('Invalid environment configuration');
+  });
+
   it.each([
     { PORT: '0' }, { PORT: '65536' }, { PORT: 'not-a-port' },
     { NODE_ENV: 'invalid' }, { LOG_LEVEL: 'debug' },

@@ -89,6 +89,10 @@ Copy the documented [`.env.example`](.env.example) into the repository root.
 `PORT`, `HOST`, `NODE_ENV`, `CLIENT_ORIGIN`, `API_PROXY_TARGET`, and `LOG_LEVEL`
 configure the foundation. If you change `PORT`, also update `API_PROXY_TARGET`
 and any explicit `APP_ORIGIN`.
+Without an explicit `HOST`, development/test bind to `127.0.0.1` and production
+binds to `0.0.0.0`, accepting the platform-provided `PORT`. When copying the local
+example into a hosted environment, replace its explicit `HOST=127.0.0.1` with
+`HOST=0.0.0.0` or omit HOST. An explicit bind address is always respected.
 `MONGODB_URI` selects the application database. The example uses an initialized
 local `rs0` replica set. Production uses an environment-provided Atlas URI; no real
 URI is committed. Replace the `JWT_SECRET` placeholder with a fresh base64url

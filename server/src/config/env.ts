@@ -11,13 +11,16 @@ export const httpOriginSchema = z.url().refine((value) => {
 
 const environmentSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  HOST: z.string().trim().min(1).default('127.0.0.1'),
+  HOST: z.string().trim().min(1).optional(),
   PORT: z.coerce.number().int().min(1).max(65535).default(4000),
   CLIENT_ORIGIN: httpOriginSchema.default('http://localhost:5173'),
   LOG_LEVEL: z.enum(['info', 'silent']).default('info'),
   // Optional for liveness-only use. connectDatabase requires this before connecting.
   MONGODB_URI: z.string().trim().regex(/^mongodb(?:\+srv)?:\/\/\S+$/, 'Must be a MongoDB connection URI').optional()
-});
+}).transform((settings) => ({
+  ...settings,
+  HOST: settings.HOST ?? (settings.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1')
+}));
 
 export function parseEnvironment(input: NodeJS.ProcessEnv) {
   const result = environmentSchema.safeParse(input);
