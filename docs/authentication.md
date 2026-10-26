@@ -381,7 +381,8 @@ because a network failure can occur after a server-side change.
 `ProtectedRoute`, `PublicOnlyRoute`, and `RoleGuard` compose in `App.tsx`. Wrong-role
 visits render a 403-style screen without dashboard content. Login return locations
 from route state or a `redirect` query are allowlisted to the verified role's own
-dashboard; external URLs, protocol-relative paths, other roles, and auth routes
+dashboard and implemented organizer event routes (list/new/detail/edit). External
+URLs, protocol-relative paths, other roles, and auth routes
 fall back to that dashboard. Safe query/hash values are retained. These guards
 do not replace API authentication, persisted-role checks, or resource ownership.
 

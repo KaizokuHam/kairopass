@@ -101,6 +101,31 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - Preserve controlled-clock, real database ownership/lifecycle/concurrency tests.
   On 409 EVENT_UPDATE_CONFLICT, future clients should reload and request review.
 
+## Organizer event frontend (Task 06)
+
+- Extend OrganizerLayout/Sidebar, shared EventForm, typed events service, and the
+  scoped read/mutation hooks. Reuse AuthProvider and the existing HTTP client.
+- Keep all organizer routes behind ProtectedRoute and ORGANIZER RoleGuard.
+  Preserve the strict role-aware allowlist of implemented post-login return routes.
+- Key event reads by verified organizer and query/resource; abort obsolete work.
+  Never show old organizer data after logout, session uncertainty, or identity change.
+- Interpret local form times through Date conversion, never by appending Z.
+  Preserve precision and date ordering; name the browser timezone in the UI.
+- Parse rupee decimal text with exact integer arithmetic; store/send safe paise.
+  Zero-price events work; reject negative/exponent/excess-precision input.
+- Share create/edit validation; PATCH only changed fields. Published schedule,
+  capacity, deadline, and price remain read-only; cancelled events stay read-only.
+- Publish/cancel require accessible explicit confirmation. No optimistic status
+  or success. Disable duplicate actions and refetch actual details after success.
+- Preserve modal focus trapping/restoration, background inertness, and keyboard use.
+- On 409, block resubmission and offer explicit reload/review of current state.
+  An interrupted mutation may have committed; do not automatically retry it.
+- Lists use bounded server pagination, URL filters, debounced search, and actual
+  remaining capacity. Reset filters/search to page one; errors are never empty success.
+- Dashboard recent events and totals come from a bounded API call, never fake metrics.
+- Do not expose raw server errors, cookies, JWTs, or private model metadata;
+  no event/auth browser-storage persistence. Keep frontend HTTP-boundary tests.
+
 ## Verification and Git
 
 - Use `npm ci` and `npm run check` (lint, types, all tests, both builds).
@@ -120,7 +145,7 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - 03 — Authentication Backend (implemented; see verification record)
 - 04 — Authentication Frontend (implemented; see verification record)
 - 05 — Event Management Backend (implemented; see verification record)
-- 06 — Event Management Frontend
+- 06 — Event Management Frontend (implemented; see verification record)
 - 07 — Event Discovery
 - 08 — Reservation Engine
 - 09 — Simulated Payment Gateway
@@ -131,5 +156,5 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - 14 — Production Release & Documentation
 
 Future tasks must continue using MongoDB/Mongoose. Implement only the task the
-user authorizes. Task 06 is Event Management Frontend; booking/payment/ticket
+user authorizes. Task 07 is Public Event Discovery; booking/payment/ticket
 workflows remain later tasks and require their own authorization.

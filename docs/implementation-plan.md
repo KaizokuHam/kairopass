@@ -17,8 +17,8 @@ Submission deadline: **October 27, 2026, 11:59 PM IST**.
 | 03 | Authentication Backend | Completed — implementation and local acceptance verified |
 | 04 | Authentication Frontend, Protected Routing & User Experience | Completed — implementation and local acceptance verified |
 | 05 | Event Management Backend | Completed — implementation and local acceptance verified |
-| 06 | Event Management Frontend | Next — not implemented |
-| 07 | Event Discovery | Upcoming |
+| 06 | Event Management Frontend | Completed — implementation and local acceptance verified |
+| 07 | Event Discovery | Next — not implemented |
 | 08 | Reservation Engine | Upcoming |
 | 09 | Simulated Payment Gateway | Upcoming |
 | 10 | QR Ticketing | Upcoming |
@@ -227,3 +227,49 @@ after another operation has already completed. Task 08 must update the same
 published event and insert reservations atomically for cross-module safety.
 Persistent use still requires an owned replica-set/Atlas database, generated JWT
 key, and correct origin settings. Task 06 can begin when separately authorized.
+
+## Task 06 acceptance record
+
+Verified on **October 26, 2026 (IST)** with Node.js 24.14.0 and npm 11.9.0:
+
+| Check | Observed result |
+| --- | --- |
+| Prerequisites | Tasks 04/05 landed; repository/identity/remote checked and synchronized; baseline quality gate passed |
+| Typed API integration | Six actual organizer endpoints, relative same-origin GET/POST/PATCH, strict event/pagination parsing, safe domain errors and validation paths |
+| Request safety | Verified-identity-scoped reads, abort/generation protection, duplicate-mutation mutex, session revalidation, logout/account-change isolation |
+| Create/edit forms | One accessible shared form; backend-compatible limits, inline errors, preserved failed input, only permitted changed PATCH fields |
+| Currency and dates | Exact BigInt decimal-to-paise conversion, free events, safe-integer bounds, local-time/ISO round trips including subsecond precision and invalid-calendar rejection |
+| List/detail | Actual API data, remaining capacity, URL filters, 350 ms search debounce, sorting/page size, server pagination, distinct loading/empty/failure states |
+| Lifecycle | Explicit accessible publish/cancel dialogs, no optimistic success, pending-action lock, fresh detail GETs, conflict reload/review, terminal cancelled views |
+| Dashboard/navigation | Functional workspace links, newest three actual events and API total, no fabricated draft/published counts or analytics |
+| New frontend tests | 76 new tests across 6 files, supplementing the original 60; 136 total frontend tests across 11 files |
+| Backend regressions | All 259 tests across 9 files passed, including 94 real event integration tests; server source unchanged from Task 05 |
+| Clean installation | npm ci passed: 439 installed packages, no reported vulnerabilities |
+| Complete quality gate | npm run check passed: zero-warning lint, both TypeScript checks, 395 tests across 20 files, both production builds |
+| Real browser lifecycle | Disposable organizer created/edited/confirmed publication, changed permitted published venue, cancelled an eligible event, and verified terminal status after reload |
+| Real pricing/time | Paid ₹199.00 and free ₹0.00 events persisted; chosen local schedule displayed correctly after retrieval/refresh |
+| Browser queries/workspace | Status filter, debounced no-match search, clearing filters, oldest/newest ordering, page 1/2 navigation, live dashboard total/recent links |
+| Browser authorization | Another organizer saw safe not-found without prior account data; attendee denied organizer pages; signed-out event navigation redirected to login |
+| Responsive/dialog checks | Desktop, 768px tablet, and 375px mobile checks without page overflow; mobile form submission and publication dialog worked; Escape/focus return verified |
+| Compiled server | All new organizer SPA routes/assets served successfully; actual event API lifecycle/security and fail-closed unavailable-state smoke checks passed |
+| Hygiene/scope | No backend/database/dependency changes, no browser token/cookie/storage access, no tracked secrets/builds/preview helpers; Task 07 remains unimplemented |
+
+Browser verification used actual HTTP APIs and MongoDB records in an owned
+MongoDB 8.2.6 replica set, disposable `.test` accounts, and an ephemeral signing
+key. Preview processes and the owned replica set were stopped. Screenshots,
+recovery snapshots, and helpers remain in ignored artifacts; no shared/production
+database was used or cleaned.
+
+Five coherent commits cover API/hooks, forms, list/detail routes, lifecycle/
+dashboard integration and regressions, and documentation. Final remote head,
+clean working tree, and push-triggered GitHub Actions conclusion are verified
+at delivery. Current runs are available in
+[GitHub Actions](https://github.com/KaizokuHam/kairopass/actions/workflows/ci.yml).
+
+Known limits: no public discovery, reservation/payment/ticket workflows, refunds,
+offline mutation queue, or separate timezone selector. Interrupted mutations
+can already have reached the server, so review/reload before retrying. The
+backend has no client revision/ETag contract for long-lived old forms; 409
+conflicts require explicit reload. Persistent use requires configured owned
+replica-set/Atlas storage, JWT credentials, and correct origins/HTTPS. Task 07
+can begin when separately authorized; it is not implemented by this task.

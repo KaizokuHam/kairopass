@@ -79,7 +79,7 @@ cleanup aborts requests, including StrictMode's first development setup. A form
 unmount discards its local password state; a submitted mutation remains owned by
 the provider until it settles, since the server may already have set a cookie.
 
-The existing HTTP client supports GET/POST, same-origin credentials, JSON bodies,
+The existing HTTP client supports GET/POST/PATCH, same-origin credentials, JSON bodies,
 runtime response validation, timeouts, cancellation, and safe typed errors. Auth
 responses allow only public user fields. Status/code/request ID and Retry-After
 metadata are available to UI; raw backend exception messages are never displayed.
@@ -87,8 +87,8 @@ metadata are available to UI; raw backend exception messages are never displayed
 Public-only login/register routes redirect verified users to their own dashboard.
 `ProtectedRoute` gates unresolved sessions and sends confirmed guests to login;
 `RoleGuard` renders an access-denied view for the other role. Return destinations
-are allowlisted to the verified role's local dashboard, with safe query/hash
-preservation. Frontend guards are navigation UX; server role/ownership checks
+are allowlisted to the verified role's dashboard and implemented organizer event
+routes, with safe query/hash preservation. Frontend guards are navigation UX; server role/ownership checks
 remain mandatory for every future protected API resource.
 
 Routing uses `useTransitions={false}` so confirmed logout can navigate to `/`
@@ -136,6 +136,34 @@ and count with a 2-second query budget. The additive reservation event/status
 index supports cancellation's defensive lookup. Error handling preserves the
 standard request-ID envelope and sanitizes all database failures. See
 [event API and concurrency details](events.md) for Task 06 integration and limits.
+
+## Organizer event frontend (Task 06)
+
+OrganizerLayout/Sidebar extend the existing account shell with protected list,
+create, detail, and edit routes. A shared form validates complete state, converts
+rupee text to exact safe paise, interprets local wall times as UTC ISO values,
+and sends only changed permitted fields. Published economics/schedule stay
+read-only; cancelled events have no editing or lifecycle controls.
+
+The typed event service extends the existing client and validates essential DTO
+and pagination structure. Local read hooks scope requests to verified organizer
+identity and query/resource, cancel old reads, and ignore obsolete responses.
+There is no persistent/shared event cache. Logout/unresolved authentication
+hides protected data; 401/role failures reuse AuthProvider session verification.
+List filter state is URL-based, search is debounced, pagination uses real totals,
+and all failure states remain distinct from empty results.
+
+Lifecycle actions use reusable accessible confirmation dialogs and serialized
+component mutations. UI status is never changed optimistically. Successful
+create/edit/action requests lead to fresh detail GETs; navigation remounts list
+reads. Conflicts block resubmission until an explicit reload; uncertain network
+outcomes prompt review before retry. Background content is inert during modals,
+keyboard focus is trapped/restored, and pending controls cannot repeat actions.
+
+The organizer dashboard fetches only three recent events and the API total.
+Other metrics are omitted. Public event discovery and booking remain later tasks.
+No backend/auth/database changes are needed for Task 06. See
+[event frontend contracts and limitations](events.md#organizer-frontend-task-06).
 
 ## Persistence and data integrity
 

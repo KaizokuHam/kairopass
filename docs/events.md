@@ -1,8 +1,9 @@
 # Organizer event management
 
-Task 05 implements a private organizer API. Event forms (06), public discovery
-(07), reservation allocation/expiration (08), payments, and ticketing remain
-future work. There is no public event browsing or hard-delete endpoint.
+Task 05 implements a private organizer API. Task 06 connects the organizer
+dashboard, event forms, list/detail pages, and confirmed lifecycle actions.
+Public discovery (07), reservation allocation/expiration (08), payments, and
+ticketing remain future work. There is no public event browsing or hard-delete endpoint.
 
 ## Access and model
 
@@ -238,3 +239,110 @@ and transactional conflicts. Query barriers pause real reads to reproduce races;
 fault injection is limited to failure-path checks. They never use/clean an
 application or production database. `npm run test:db`, `npm test`, and CI include
 the event suites. See the [acceptance record](implementation-plan.md#task-05-acceptance-record).
+
+## Organizer frontend (Task 06)
+
+All event pages compose the existing ProtectedRoute and ORGANIZER RoleGuard.
+Unresolved/unavailable authentication hides protected content; guests go to login
+and attendees see access denied. Implemented local event paths are allowlisted
+as organizer-only login return destinations. Event ownership remains enforced
+by the server; a missing or unowned event produces the same safe not-found view.
+
+| Browser route | Responsibility |
+| --- | --- |
+| `/organizer/dashboard` | Existing account overview plus newest three real events, backend total, and workspace links |
+| `/organizer/events` | Owned events, debounced title search, status/sort/page-size filters, previous/next pagination |
+| `/organizer/events/new` | Validated draft creation; successful response leads to a fresh event-detail GET |
+| `/organizer/events/:id` | Actual persisted details, status, inventory metadata, and permitted lifecycle actions |
+| `/organizer/events/:id/edit` | Shared form for draft/descriptive published edits; cancelled events remain read-only |
+
+OrganizerLayout and OrganizerSidebar extend the established dark product shell.
+My Events and Create Event are functional on desktop and mobile. Registrations,
+check-in, and analytics remain clearly labeled future modules. Dashboard recent
+events use a bounded `limit=3` request; total comes from pagination metadata.
+No draft/published counts, revenue, or attendance statistics are invented.
+
+### Form, currency, and local time
+
+One EventForm handles creation and editing with the same title/venue/description,
+capacity, and date bounds as the backend. Drafts need a future start, end after
+start, and deadline no later than start. An elapsed registration deadline may
+be saved as a draft, but publication requires a future deadline. Published forms
+lock schedule, deadline, capacity, and price. PATCH sends only permitted changed
+fields; unchanged forms make no request. Cancelled edit URLs show read-only
+feedback with no form. Failed requests preserve input, associate inline errors,
+and expose safe feedback and request references.
+
+Ticket prices are entered in rupees without the currency symbol. Decimal text is
+validated to at most two fractional places and converted with BigInt arithmetic
+before conversion to a safe integer number of paise. `199.00` becomes 19900;
+`0.00` is free. Negative amounts, exponent notation, excessive precision, and
+values beyond Number.MAX_SAFE_INTEGER paise are rejected. Display groups rupees
+using `en-IN` and formats the final two paise digits exactly, including at the
+safe-integer bound; binary floating-point multiplication is not used.
+
+Date inputs represent the browser's local wall-clock time. The form names the
+resolved local timezone, and detail/list displays use `en-IN` dates. Calendar
+components are interpreted locally and converted to UTC ISO strings. UTC `Z`
+is never appended directly to a local wall time. Component round trips reject
+invalid dates and nonexistent local times; existing seconds/milliseconds survive
+editing. Ambiguous daylight-saving times use the browser Date implementation's
+choice; there is no separate timezone selector. See
+[local date-time inputs](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input/datetime-local)
+and [Date timezone behavior](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date).
+
+### API and request consistency
+
+The existing HTTP client now supports PATCH alongside GET/POST. The typed event
+service uses only the six Task 05 endpoints, same-origin cookies, relative `/api`
+paths, cancellation, and existing request timeouts. Runtime parsers check public
+event shape, dates, safe inventory/prices, status, and pagination consistency.
+Only allowlisted input fields are serialized. JWTs/cookies are never read or
+written by frontend code; no event or credential data is kept in browser storage.
+
+Focused hooks keep state local and key reads by verified organizer identity,
+resource/query, and refresh attempt. Superseded/unmounted requests are aborted
+and obsolete results ignored. Query changes hide old results until a fresh
+response; failures never become empty-list success. Logout unmounts protected
+pages, and identity changes immediately hide previous organizer data. Unexpected
+owner IDs in responses are rejected. HTTP 401 or role-forbidden responses trigger
+existing `/me` revalidation; 503/network errors remain recoverable service errors.
+
+List filters live in the URL and survive page navigation/back. Search waits
+350 ms after input, uses the backend's literal title-search contract, and resets
+page one. Status, sort, and page size changes also reset pagination. A pending
+search is applied at page one even when pagination is clicked before debounce
+finishes. API pagination totals determine navigation; empty out-of-range pages
+offer a first-page action. Limits remain within the backend's 1–50 / page 10,000 bounds.
+
+### Confirmed lifecycle actions and recovery
+
+Draft publication opens a modal explaining future discovery eligibility and
+the economic/schedule fields that become locked. Cancellation opens a separate
+modal explaining permanence, record retention, active-reservation restrictions,
+and the absence of refunds. Both require explicit confirmation. The dialogs
+label their purpose, focus the least destructive control, trap Tab, support
+Escape when idle, make the background inert, and restore focus on close.
+
+Pending actions disable repeat submission. Status changes and success feedback
+follow actual successful responses; details are fetched again after mutations.
+Known expired publication deadlines or occupied counters disable corresponding
+actions, while the backend remains authoritative. Active-reservation conflicts
+show the actual policy without implying cancellation or refunds. On 409, form/
+dialog submission is blocked until the organizer reloads/reviews current state.
+Reload explicitly replaces unsaved form edits; it never silently resubmits them.
+
+Safe local messages distinguish validation, not-found, access, lifecycle,
+concurrency, rate limits, unavailable service, network, and timeout failures.
+Allowlisted server validation paths identify fields; raw server error messages
+or stacks are not rendered. No automatic mutation retries or offline queue exist.
+An aborted/timed-out request may already have committed on the server, so users
+are told to check/reload events before repeating a change. The Task 05 limitation
+on old browser forms without a client revision/ETag contract still applies.
+
+`npm run test:web` runs the complete frontend suite, including HTTP-boundary,
+currency/date, form, routing, lifecycle/dialog, pagination, and identity-isolation
+tests. `npm run test:watch -w client` watches them. Root `npm test`, `npm run check`,
+and CI also run unchanged backend regressions. Real-browser verification uses
+disposable accounts and an owned replica set; see the
+[Task 06 acceptance record](implementation-plan.md#task-06-acceptance-record).

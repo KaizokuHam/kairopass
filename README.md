@@ -15,15 +15,15 @@ guests, and understand attendance.
 
 ## Product workflows
 
-1. Organizer event creation and management (backend available; frontend in Task 06).
+1. Organizer event creation and management through the complete private organizer workspace.
 2. Event discovery and ticket reservations.
 3. Database-backed simulated payment processing and confirmation.
 4. Signed QR ticket issuance and secure check-in.
 5. Organizer analytics and reporting.
 
 Payments will be simulated. No real card processing or real payment collection
-is planned. Event management UI, discovery, booking, payments, and ticketing
-remain upcoming after Task 05.
+is planned. Public discovery, booking, payments, and ticketing remain upcoming
+after Task 06.
 
 ## Stack and architecture
 
@@ -126,9 +126,9 @@ MongoDB deployment; the liveness endpoint remains independent.
 │   ├── public/                 # Static brand asset
 │   ├── src/
 │   │   ├── components/ui/      # Reusable UI primitives
-│   │   ├── pages/              # Public pages, auth forms, role dashboards, 404
+│   │   ├── pages/              # Public/auth pages, dashboards, organizer event pages, 404
 │   │   ├── layouts/            # Navigation, main content, footer
-│   │   ├── hooks/              # useAuth and API health lifecycle
+│   │   ├── hooks/              # Auth, health, scoped event reads and mutations
 │   │   ├── services/           # Relative-path HTTP client
 │   │   ├── context/            # In-memory session state and request coordination
 │   │   ├── lib/                # Form validation, safe destinations, styling
@@ -210,7 +210,7 @@ read application `MONGODB_URI` for data cleanup.
 | `/`, `/vision` | Public overview and roadmap |
 | `/login`, `/register` | Accessible forms; authenticated users return to their own dashboard |
 | `/attendee/dashboard` | Attendee account overview; future discovery/reservations/tickets labeled upcoming |
-| `/organizer/dashboard` | Organizer account overview; future event management/check-in/analytics labeled upcoming |
+| `/organizer/dashboard` | Account overview, live recent events, functional event-management navigation |
 
 Registration signs the user in immediately using the real API response. Refresh
 restores identity through `/api/auth/me`; only a 401 confirms a signed-out session.
@@ -257,9 +257,19 @@ The clean-install quality gate passes **319 tests / 14 files**: **94 event
 integration tests**, **165 existing backend tests**, and **60 frontend tests**,
 plus lint, strict types, and both production builds.
 
-Event management frontend, public discovery, reservation orchestration, simulated
-checkout, QR generation, check-in, and analytics remain upcoming. Task 06 is Event
-Management Frontend; no event forms have been added in Task 05.
+Task 06 connects the organizer workspace to those APIs: validated create/edit
+forms, real list/detail views, confirmed publication/cancellation, and live
+dashboard links. The backend implementation is unchanged. See
+[organizer frontend behavior](docs/events.md#organizer-frontend-task-06) and the
+[Task 06 acceptance record](docs/implementation-plan.md#task-06-acceptance-record).
+Its clean-install quality gate passes **395 tests / 20 files**: **136 frontend
+tests** (76 added in Task 06) and **259 unchanged backend tests**, plus lint,
+strict TypeScript, and both production builds. Real-browser verification covers
+paid/free creation, editing, publication/cancellation, refresh persistence,
+filters/pagination, role/ownership protection, and desktop/tablet/mobile layouts.
+
+Public discovery, reservation orchestration, simulated checkout, QR generation,
+check-in, and analytics remain upcoming. Task 07 is Public Event Discovery.
 [AGENTS.md](AGENTS.md) records the permanent stack and
 engineering rules for future sessions.
 
