@@ -9,7 +9,7 @@ export interface AuthContextValue {
   pendingAction: 'login' | 'register' | 'logout' | null;
   login(input: LoginInput): Promise<AuthUser>;
   register(input: RegistrationInput): Promise<AuthUser>;
-  logout(): Promise<void>;
+  logout(onConfirmed?: () => void): Promise<void>;
   refreshSession(): Promise<void>;
 }
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);

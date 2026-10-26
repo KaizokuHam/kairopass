@@ -17,7 +17,7 @@ export function HomePage() {
           <h1 id="hero-heading">Your next<br />chapter,<br /><span>in person.</span><span className="heading-spark" aria-hidden="true">✳</span></h1>
           <p className="hero-description">The best moments happen when you show up.<br className="desktop-break" /> We’re building a better way to get you there.</p>
           <div className="hero-actions">
-            <a className="button button-primary" href="#platform">Meet KairoPass <ArrowDown size={16} /></a>
+            <Link className="button button-primary" to="/register">Create your account <ArrowUpRight size={16} /></Link>
             <Link className="text-link" to="/vision">Explore the vision <ArrowUpRight size={16} /></Link>
           </div>
           <div className="build-note"><span className="build-note-dot" /><span>A work in progress. A world of possibility.</span></div>
@@ -27,7 +27,7 @@ export function HomePage() {
       <section id="platform" className="platform-section" aria-labelledby="platform-heading">
         <div className="section-heading">
           <div><p className="eyebrow">THE IDEA BEHIND THE PASS</p><h2 id="platform-heading">One space. Every step.</h2></div>
-          <span className="planned-label">ON THE HORIZON <ArrowUpRight size={12} /></span>
+          <a className="planned-label" href="#platform">ON THE HORIZON <ArrowDown size={12} /></a>
         </div>
         <div className="pillar-grid">
           {pillars.map(({ number, icon: Icon, title, text }) => (

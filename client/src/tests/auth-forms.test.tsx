@@ -9,7 +9,7 @@ import { safeAuthDestination } from '@/lib/auth-navigation';
 import { attendee, deferred, failure, json, organizer, userResponse } from './fixtures';
 
 function show(path = '/login') {
-  return render(<AuthProvider><MemoryRouter initialEntries={[path]}><Routes>
+  return render(<AuthProvider><MemoryRouter useTransitions={false} initialEntries={[path]}><Routes>
     <Route path="/login" element={<LoginPage />} /><Route path="/register" element={<RegisterPage />} />
     <Route path="/attendee/dashboard" element={<h1>Attendee destination</h1>} />
     <Route path="/organizer/dashboard" element={<h1>Organizer destination</h1>} />

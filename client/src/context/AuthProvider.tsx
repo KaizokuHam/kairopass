@@ -72,7 +72,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback((input: LoginInput) => perform('login', (signal) => authApi.login(input, signal)), [perform]);
   const register = useCallback((input: RegistrationInput) => perform('register', (signal) => authApi.register(input, signal)), [perform]);
-  const logout = useCallback(() => perform('logout', (signal) => authApi.logout(signal)), [perform]);
+  const logout = useCallback((onConfirmed?: () => void) => perform('logout', async (signal) => {
+    await authApi.logout(signal);
+    // Navigate only after revocation succeeds, before an old protected route can redirect.
+    onConfirmed?.();
+  }), [perform]);
 
   useEffect(() => {
     alive.current = true;

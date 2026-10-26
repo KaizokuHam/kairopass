@@ -4,8 +4,9 @@ import { BrowserRouter } from 'react-router';
 import { App } from './App';
 import './styles.css';
 import './auth.css';
+import './dashboard.css';
 import { AuthProvider } from './context/AuthProvider';
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode><BrowserRouter><AuthProvider><App /></AuthProvider></BrowserRouter></StrictMode>
+  <StrictMode><BrowserRouter useTransitions={false}><AuthProvider><App /></AuthProvider></BrowserRouter></StrictMode>
 );
