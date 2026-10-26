@@ -28,6 +28,8 @@ export function createEventsRouter(config: AuthConfig | null) {
   }
   router.use(requireDatabase, requireAuth(config), requireRole('ORGANIZER'), requireTrustedOrigin(config));
   router.post('/', controller.create);
+  router.get('/', controller.list);
+  router.get('/:id', controller.get);
   router.use(eventsErrorHandler);
   return router;
 }

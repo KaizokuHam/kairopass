@@ -11,6 +11,70 @@ beforeEach(() => {
   vi.setSystemTime(eventTime);
   app = eventsApp();
 });
+
+describe('owned event listing and retrieval', () => {
+  it('returns an empty page with validated defaults', async () => {
+    const organizer = await actor(app);
+    const response = await request(app).get('/api/organizer/events').set('Cookie', organizer.cookie).expect(200);
+    expect(response.body).toEqual({ success: true, data: { events: [], pagination: { page: 1, limit: 10, total: 0, totalPages: 0 } } });
+  });
+
+  it('isolates ownership, paginates deterministically, filters status, and escapes literal search', async () => {
+    const owner = await actor(app);
+    const other = await actor(app, 'ORGANIZER', 'other@example.test');
+    const ids: string[] = [];
+    for (const title of ['Cloud Workshop', 'Cloud [A.*]', 'Third Workshop']) {
+      const created = await createDraft(app, owner.cookie, { title }).expect(201);
+      ids.push(created.body.data.event.id);
+    }
+    await createDraft(app, other.cookie, { title: 'Private other workshop' }).expect(201);
+    await Event.updateOne({ _id: ids[0]! }, { $set: { status: 'PUBLISHED' } });
+    const get = (query: string) => request(app).get(`/api/organizer/events${query}`).set('Cookie', owner.cookie).expect(200);
+    const newest = await get('?limit=2');
+    expect(newest.body.data.events.map((event: { id: string }) => event.id)).toEqual([ids[2], ids[1]]);
+    expect(newest.body.data.pagination).toEqual({ page: 1, limit: 2, total: 3, totalPages: 2 });
+    const second = await get('?limit=2&page=2');
+    expect(second.body.data.events.map((event: { id: string }) => event.id)).toEqual([ids[0]]);
+    expect((await get('?limit=2&page=3')).body.data.events).toEqual([]);
+    expect((await get('?sort=oldest')).body.data.events.map((event: { id: string }) => event.id)).toEqual(ids);
+    expect((await get('?status=PUBLISHED')).body.data.events.map((event: { id: string }) => event.id)).toEqual([ids[0]]);
+    const literal = await get(`?search=${encodeURIComponent('[a.*]')}`);
+    expect(literal.body.data.events.map((event: { id: string }) => event.id)).toEqual([ids[1]]);
+    expect(literal.body.data.pagination.total).toBe(1);
+    const detail = await request(app).get(`/api/organizer/events/${ids[1]}`).set('Cookie', owner.cookie).expect(200);
+    expect(detail.body.data.event).toEqual(literal.body.data.events[0]);
+    expect(detail.body.data.event).not.toHaveProperty('__v');
+  });
+
+  it('returns the same not-found contract for missing and unowned events', async () => {
+    const owner = await actor(app);
+    const other = await actor(app, 'ORGANIZER', 'other@example.test');
+    const created = await createDraft(app, other.cookie).expect(201);
+    for (const id of [created.body.data.event.id, '000000000000000000000000']) {
+      const response = await request(app).get(`/api/organizer/events/${id}`).set('Cookie', owner.cookie).expect(404);
+      expect(response.body.error).toMatchObject({ code: 'EVENT_NOT_FOUND', message: 'Event not found.' });
+    }
+  });
+
+  it('protects reads for unauthenticated users and attendees', async () => {
+    const attendee = await actor(app, 'ATTENDEE');
+    for (const path of ['/api/organizer/events', '/api/organizer/events/000000000000000000000000']) {
+      await request(app).get(path).expect(401);
+      await request(app).get(path).set('Cookie', attendee.cookie).expect(403);
+    }
+  });
+
+  it.each(['not-an-id', '00000000000000000000000g', '000000000000'])('rejects malformed event id %s', async (id) => {
+    const organizer = await actor(app);
+    const response = await request(app).get(`/api/organizer/events/${id}`).set('Cookie', organizer.cookie).expect(400);
+    expect(response.body.error.code).toBe('INVALID_EVENT_INPUT');
+  });
+
+  it.each(['page=0', 'page=-1', 'page=1.5', 'page=10001', 'limit=51', 'limit=0', 'page=1&page=2', 'status=DELETED', 'sort=title', 'search=' + 'a'.repeat(121), 'organizerId=forged', 'status[$ne]=DRAFT'])('rejects invalid/unsafe query %s', async (query) => {
+    const organizer = await actor(app);
+    await request(app).get(`/api/organizer/events?${query}`).set('Cookie', organizer.cookie).expect(400);
+  });
+});
 afterEach(() => { vi.useRealTimers(); });
 
 describe('organizer event creation', () => {
