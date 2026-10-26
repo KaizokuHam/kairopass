@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { PublicEvent } from '@/types/discovery';
 
 /** Update exact start/deadline boundaries while a page remains open, and on return to the tab. */
-export function useAvailabilityClock(events: readonly PublicEvent[]) {
+export function useAvailabilityClock(events: readonly Pick<PublicEvent, 'startAt' | 'registrationDeadline'>[]) {
   const [now, setNow] = useState(Date.now);
   const nextBoundary = Math.min(...events.flatMap((event) => [Date.parse(event.startAt), Date.parse(event.registrationDeadline)]).filter((time) => time > now));
   useEffect(() => {

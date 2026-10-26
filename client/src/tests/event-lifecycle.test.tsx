@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
@@ -87,6 +87,19 @@ describe('confirmed lifecycle actions and organizer workspace', () => {
     expect(screen.getByRole('button', { name: 'Publish event' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Cancel event' })).toBeDisabled();
     expect(screen.getByText('Active reserved inventory prevents cancellation.')).toBeInTheDocument();
+  });
+  it.each([false, true])('disables publication when the deadline elapses with confirmation open=%s', async (openDialog) => {
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+    const now = Date.parse('2040-01-01T00:00:00Z'); vi.setSystemTime(now);
+    const event = { ...draft, registrationDeadline: new Date(now + 1000).toISOString() };
+    const fetcher = backend(() => eventResponse(event));
+    await act(async () => { show(); });
+    const publish = screen.getByRole('button', { name: 'Publish event' }); expect(publish).toBeEnabled();
+    if (openDialog) fireEvent.click(publish);
+    act(() => { vi.advanceTimersByTime(1000); });
+    expect(publish).toBeDisabled();
+    if (openDialog) expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm publication' })).toBeDisabled();
+    expect(fetcher.mock.calls.some(([path]) => path.endsWith('/publish'))).toBe(false);
   });
   it('shows real recent dashboard events and bounded API totals, with functional workspace links', async () => {
     const recent = Array.from({ length: 3 }, (_, index) => ({ ...draft, id: draft.id.slice(0, -1) + String(index), title: 'Recent event ' + index }));

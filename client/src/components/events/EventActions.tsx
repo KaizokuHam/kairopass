@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { Pencil, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useEventMutation } from '@/hooks/useEventMutation';
+import { useAvailabilityClock } from '@/hooks/useAvailabilityClock';
 import { ApiRequestError } from '@/services/api';
 import { eventsApi } from '@/services/events';
 import type { OrganizerEvent } from '@/types/events';
@@ -12,7 +13,7 @@ import { EventError } from './EventFeedback';
 export function EventActions({ event, changed, reload }: { event: OrganizerEvent; changed: (message: string) => void; reload: () => void }) {
   const [action, setAction] = useState<'publish' | 'cancel' | null>(null);
   const [failure, setFailure] = useState<ApiRequestError | null>(null);
-  const [checkedAt] = useState(() => Date.now());
+  const checkedAt = useAvailabilityClock([event]);
   const { pending, run } = useEventMutation(); const alive = useRef(false); const locked = useRef(false);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   const expired = Date.parse(event.startAt) <= checkedAt || Date.parse(event.registrationDeadline) <= checkedAt;
@@ -32,9 +33,10 @@ export function EventActions({ event, changed, reload }: { event: OrganizerEvent
     <Button variant="ghost" className="event-cancel-button" disabled={pending || event.reservedCount > 0} onClick={() => { setFailure(null); setAction('cancel'); }}><X size={15} />Cancel event</Button></div>
     {event.status === 'DRAFT' && expired && <p className="event-lock-note">Update the start and registration deadline before publishing.</p>}
     {event.reservedCount > 0 && <p className="event-lock-note">Active reserved inventory prevents cancellation.</p>}
-    {action && <ConfirmActionDialog title={action === 'publish' ? 'Publish this event?' : 'Cancel this event?'} confirmLabel={action === 'publish' ? 'Confirm publication' : 'Confirm cancellation'} pending={pending} blocked={failure?.status === 409} danger={action === 'cancel'} close={() => { if (!pending) setAction(null); }} confirm={() => void confirm()}>
+    {action && <ConfirmActionDialog title={action === 'publish' ? 'Publish this event?' : 'Cancel this event?'} confirmLabel={action === 'publish' ? 'Confirm publication' : 'Confirm cancellation'} pending={pending} blocked={failure?.status === 409 || (action === 'publish' && expired)} danger={action === 'cancel'} close={() => { if (!pending) setAction(null); }} confirm={() => void confirm()}>
       {action === 'publish' ? <><p>Publication makes this event visible in public discovery while its start is in the future.</p><p>Ticket price, capacity, schedule, and registration deadline become locked. You can still edit the title, description, and venue.</p></>
         : <><p>Cancellation is permanent. This event will become read-only and remain in your records.</p><p>Events with active HELD or CONFIRMED reservations cannot be cancelled through this action. No refunds are performed here.</p></>}
+      {action === 'publish' && expired && <p role="status">The publication window has closed. Keep editing and update the start and registration deadline before publishing.</p>}
       {failure && <EventError error={failure} compact mutation retry={() => { setAction(null); reload(); }} />}
     </ConfirmActionDialog>}
   </>;
