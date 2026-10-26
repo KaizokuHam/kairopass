@@ -3,7 +3,7 @@ import type { HealthResponse } from '@/types/api';
 export class ApiRequestError extends Error {
   constructor(message: string, public readonly status?: number,
     public readonly code = 'REQUEST_FAILED', public readonly requestId?: string,
-    public readonly retryAfterSeconds?: number) {
+    public readonly retryAfterSeconds?: number, public readonly fields: readonly string[] = []) {
     super(message);
     this.name = 'ApiRequestError';
   }
@@ -14,11 +14,22 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function safeMessage(status: number, code: string): string {
+  const eventMessages: Record<string, string> = {
+    EVENT_NOT_FOUND: 'This event could not be found.',
+    INVALID_EVENT_INPUT: 'Please review the event details and highlighted fields.',
+    INVALID_EVENT_STATE: 'The event’s current status does not allow this action. Reload the latest event.',
+    EVENT_NOT_PUBLISHABLE: 'Check that the event details are complete and its start and registration deadline are still in the future.',
+    EVENT_HAS_ACTIVE_RESERVATIONS: 'This event has active reservations and cannot be cancelled through this action.',
+    EVENT_UPDATE_CONFLICT: 'The event changed while you were working. Reload the latest data before trying again.',
+    EVENT_QUERY_TIMEOUT: 'The event search took too long. Narrow your filters and retry.'
+  };
+  if (eventMessages[code]) return eventMessages[code];
   if (status === 401 && code === 'INVALID_CREDENTIALS') return 'Invalid email or password. Please try again.';
   if (status === 401) return 'Please sign in to continue.';
   if (status === 403) return code === 'UNTRUSTED_ORIGIN'
     ? 'This request could not be verified. Reload the page and try again.' : 'You do not have access to this page.';
-  if (status === 409) return 'An account with this email already exists. Sign in instead.';
+  if (status === 409) return code === 'EMAIL_IN_USE' ? 'An account with this email already exists. Sign in instead.' : 'This action conflicts with the current state. Reload and try again.';
+  if (status === 404) return 'This resource could not be found.';
   if (status === 429) return 'Too many attempts. Please try again later.';
   if (status === 400 || status === 422) return 'Please check your details and try again.';
   return 'The service is temporarily unavailable. Please try again.';
@@ -31,7 +42,7 @@ function retryAfter(value: string | null): number | undefined {
 }
 
 interface RequestOptions<T> {
-  method?: 'GET' | 'POST';
+  method?: 'GET' | 'POST' | 'PATCH';
   body?: unknown;
   signal?: AbortSignal;
   timeoutMs?: number;
@@ -67,7 +78,9 @@ export async function request<T>(path: string, options: RequestOptions<T>): Prom
       const error = isRecord(data) && isRecord(data.error) ? data.error : {};
       const code = typeof error.code === 'string' && /^[A-Z_]{2,64}$/.test(error.code) ? error.code : 'REQUEST_FAILED';
       const id = typeof error.requestId === 'string' && /^[a-f\d-]{36}$/i.test(error.requestId) ? error.requestId : undefined;
-      throw new ApiRequestError(safeMessage(response.status, code), response.status, code, id, retryAfter(response.headers.get('retry-after')));
+      const fields = Array.isArray(error.details) ? error.details.filter(isRecord).map((detail) => detail.field)
+        .filter((field): field is string => typeof field === 'string' && /^(title|description|venue|startAt|endAt|registrationDeadline|capacity|pricePaise)$/.test(field)) : [];
+      throw new ApiRequestError(safeMessage(response.status, code), response.status, code, id, retryAfter(response.headers.get('retry-after')), [...new Set(fields)]);
     }
     return options.parse(data);
   } catch (error) {
