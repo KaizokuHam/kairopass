@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { SignJWT, decodeJwt } from 'jose';
 import { parseAuthEnvironment } from '../src/config/auth.js';
 import { hashPassword, verifyPassword } from '../src/modules/auth/auth.passwords.js';
-import { createSessionMaterial, hashSessionId, sessionCookieOptions, verifySessionToken } from '../src/modules/auth/auth.tokens.js';
+import { createSessionMaterial, hashSessionId, readSessionCookie, SESSION_COOKIE_NAME, sessionCookieOptions, verifySessionToken } from '../src/modules/auth/auth.tokens.js';
 
 const secret = randomBytes(48).toString('base64url');
 const config = parseAuthEnvironment({ JWT_SECRET: secret }, 'test');
@@ -54,6 +54,13 @@ describe('Argon2id password security', () => {
 });
 
 describe('JWT/session primitives', () => {
+  it('parses only one unambiguous cookie and handles malformed/duplicate headers safely', () => {
+    expect(readSessionCookie(undefined)).toBeUndefined();
+    expect(readSessionCookie('other=value')).toBeUndefined();
+    expect(readSessionCookie(`${SESSION_COOKIE_NAME}=one`)).toBe('one');
+    expect(readSessionCookie(`${SESSION_COOKIE_NAME}=one; ${SESSION_COOKIE_NAME}=two`)).toBeUndefined();
+    expect(readSessionCookie(`${SESSION_COOKIE_NAME} =one; ${SESSION_COOKIE_NAME}=two`)).toBeUndefined();
+  });
   it('creates minimal claims, random identifiers, and only hashed identifiers for storage', async () => {
     const first = await createSessionMaterial(subject, config);
     const second = await createSessionMaterial(subject, config);

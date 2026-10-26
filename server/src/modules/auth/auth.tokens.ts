@@ -10,7 +10,10 @@ export const SESSION_COOKIE_NAME = 'kairopass_session';
 export function readSessionCookie(header: string | undefined): string | undefined {
   if (!header) return undefined;
   // Ambiguous duplicate names can come from cookie tossing. Never pick one arbitrarily.
-  const matches = header.split(';').filter((part) => part.trim().split('=', 1)[0] === SESSION_COOKIE_NAME);
+  const matches = header.split(';').filter((part) => {
+    const separator = part.indexOf('=');
+    return separator >= 0 && part.slice(0, separator).trim() === SESSION_COOKIE_NAME;
+  });
   if (matches.length !== 1) return undefined;
   return parseCookie(header)[SESSION_COOKIE_NAME];
 }

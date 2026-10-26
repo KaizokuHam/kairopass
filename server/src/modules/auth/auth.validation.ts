@@ -5,6 +5,7 @@ import { ApiError } from '../../lib/api-error.js';
 
 const email = z.string().trim().toLowerCase().pipe(z.email().max(254));
 const password = z.string().min(8).max(128)
+  .refine((value) => Array.from(value).length >= 8, 'Password must contain at least 8 Unicode characters')
   .refine((value) => Buffer.byteLength(value, 'utf8') <= 256, 'Password must not exceed 256 UTF-8 bytes');
 
 export const registrationSchema = z.object({

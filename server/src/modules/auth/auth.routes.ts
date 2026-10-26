@@ -1,7 +1,7 @@
 import { Router, type ErrorRequestHandler, type RequestHandler } from 'express';
 import type { AuthConfig } from '../../config/auth.js';
 import { env } from '../../config/env.js';
-import { requireDatabase } from '../../config/database.js';
+import { isDatabaseReady, requireDatabase } from '../../config/database.js';
 import { requireAuth } from '../../middleware/authenticate.js';
 import { requireTrustedOrigin } from '../../middleware/auth-csrf.js';
 import { authRateLimit } from '../../middleware/auth-rate-limit.js';
@@ -10,10 +10,10 @@ import { authController } from './auth.controller.js';
 
 const authErrorHandler: ErrorRequestHandler = (error: unknown, _req, res, next) => {
   if (error instanceof ApiError) { next(error); return; }
-  const unavailable = error instanceof Error && [
+  const unavailable = !isDatabaseReady() || (error instanceof Error && [
     'MongoNetworkError', 'MongoNetworkTimeoutError', 'MongoServerSelectionError',
     'MongooseServerSelectionError', 'MongoNotConnectedError', 'MongoTopologyClosedError', 'MongoOperationTimeoutError'
-  ].includes(error.name);
+  ].includes(error.name));
   if (env.LOG_LEVEL !== 'silent') {
     console.error(JSON.stringify({ level: 'error', requestId: res.locals.requestId, message: 'Authentication operation failed.' }));
   }
