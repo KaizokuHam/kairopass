@@ -27,4 +27,6 @@ reservationSchema.index({ userId: 1, eventId: 1 }, {
 });
 // Supports explicit expiration sweeps. Never use a TTL: retain booking history.
 reservationSchema.index({ status: 1, expiresAt: 1 }, { name: 'reservation_expiration_scan' });
+// Cancellation must check active bookings by event, even if its inventory counter is inconsistent.
+reservationSchema.index({ eventId: 1, status: 1 }, { name: 'reservation_event_status' });
 export const Reservation = model<ReservationRecord>('Reservation', reservationSchema);

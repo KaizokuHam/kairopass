@@ -30,6 +30,9 @@ export function createEventsRouter(config: AuthConfig | null) {
   router.post('/', controller.create);
   router.get('/', controller.list);
   router.get('/:id', controller.get);
+  router.patch('/:id', controller.update);
+  router.post('/:id/publish', controller.publish);
+  router.post('/:id/cancel', controller.cancel);
   router.use(eventsErrorHandler);
   return router;
 }

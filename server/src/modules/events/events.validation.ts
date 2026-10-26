@@ -14,6 +14,9 @@ const bodyFields = { title, description, venue, startAt: dateTime, endAt: dateTi
   registrationDeadline: dateTime, capacity, pricePaise };
 export const createEventSchema = z.object({ ...bodyFields, description: description.default('') }).strict();
 export type CreateEventInput = z.infer<typeof createEventSchema>;
+export const updateEventSchema = z.object(bodyFields).partial().strict()
+  .refine((input) => Object.keys(input).length > 0, 'At least one editable field is required.');
+export type UpdateEventInput = z.infer<typeof updateEventSchema>;
 export const eventIdSchema = z.object({ id: z.string().regex(/^[a-f\d]{24}$/i, 'A valid event ObjectId is required.') }).strict();
 const pageNumber = (maximum: number) => z.string().regex(/^[1-9]\d{0,4}$/).transform(Number).pipe(z.number().int().max(maximum));
 export const listEventsSchema = z.object({
@@ -41,4 +44,10 @@ export function parseEventInput<T>(value: unknown, schema: z.ZodType<T>, status 
 export function parseEventBody<T>(request: Request, schema: z.ZodType<T>): T {
   if (!request.is('application/json')) throw new ApiError(400, 'INVALID_EVENT_INPUT', 'Content-Type must be application/json.');
   return parseEventInput(request.body, schema);
+}
+
+export function parseLifecycleBody(request: Request): void {
+  if (request.body !== undefined || (request.get('content-length') && request.get('content-length') !== '0') || request.get('transfer-encoding')) {
+    parseEventBody(request, z.object({}).strict());
+  }
 }

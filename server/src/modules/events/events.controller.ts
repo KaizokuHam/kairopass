@@ -1,7 +1,7 @@
 import type { Request, RequestHandler } from 'express';
 import { ApiError } from '../../lib/api-error.js';
 import * as service from './events.service.js';
-import { createEventSchema, eventIdSchema, listEventsSchema, parseEventBody, parseEventInput } from './events.validation.js';
+import { createEventSchema, eventIdSchema, listEventsSchema, parseEventBody, parseEventInput, parseLifecycleBody, updateEventSchema } from './events.validation.js';
 
 function organizer(request: Request): string {
   if (!request.auth) throw new ApiError(401, 'UNAUTHENTICATED', 'Authentication is required.');
@@ -21,5 +21,25 @@ export const list: RequestHandler = async (req, res) => {
 export const get: RequestHandler = async (req, res) => {
   const { id } = parseEventInput(req.params, eventIdSchema);
   const event = await service.getEvent(organizer(req), id);
+  res.json({ success: true, data: { event } });
+};
+
+export const update: RequestHandler = async (req, res) => {
+  const { id } = parseEventInput(req.params, eventIdSchema);
+  const event = await service.updateEvent(organizer(req), id, parseEventBody(req, updateEventSchema));
+  res.json({ success: true, data: { event } });
+};
+
+export const publish: RequestHandler = async (req, res) => {
+  const { id } = parseEventInput(req.params, eventIdSchema);
+  parseLifecycleBody(req);
+  const event = await service.publishEvent(organizer(req), id);
+  res.json({ success: true, data: { event } });
+};
+
+export const cancel: RequestHandler = async (req, res) => {
+  const { id } = parseEventInput(req.params, eventIdSchema);
+  parseLifecycleBody(req);
+  const event = await service.cancelEvent(organizer(req), id);
   res.json({ success: true, data: { event } });
 };
