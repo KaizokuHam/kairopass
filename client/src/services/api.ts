@@ -15,6 +15,15 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 
 function safeMessage(status: number, code: string): string {
   const eventMessages: Record<string, string> = {
+    PAYMENT_INVALID_INPUT: 'Please choose a valid simulation outcome and retry using its original request key.',
+    PAYMENT_IDEMPOTENCY_CONFLICT: 'This request key belongs to a different payment choice. Check the original payment status.',
+    PAYMENT_ATTEMPT_NOT_FOUND: 'This payment attempt could not be found.',
+    PAYMENT_OUTCOME_UNKNOWN: 'The payment may have completed. Check its status or resume the same attempt.',
+    PAYMENT_INCONSISTENT: 'The payment state could not be verified. Please check its status later.',
+    PAYMENT_CONFIRMATION_CONFLICT: 'The reservation changed. Check payment status before trying again.',
+    RESERVATION_EXPIRED: 'Your reservation hold has expired.',
+    RESERVATION_NOT_PAYABLE: 'This reservation is not available for checkout.',
+    RESERVATION_ALREADY_CONFIRMED: 'This reservation is already confirmed. Check its payment history.',
     RESERVATION_NOT_FOUND: 'This reservation could not be found.',
     EVENT_SOLD_OUT: 'This event is sold out. Refresh availability to check for released holds.',
     EVENT_NOT_BOOKABLE: 'This event is no longer available for reservations.',
@@ -57,6 +66,7 @@ interface RequestOptions<T> {
   body?: unknown;
   signal?: AbortSignal;
   timeoutMs?: number;
+  idempotencyKey?: string;
   parse: (value: unknown) => T;
 }
 
@@ -74,7 +84,7 @@ export async function request<T>(path: string, options: RequestOptions<T>): Prom
   try {
     const response = await fetch(`/api${path}`, {
       method: options.method ?? 'GET', credentials: 'same-origin', cache: 'no-store',
-      headers: { Accept: 'application/json', ...(options.body !== undefined ? { 'Content-Type': 'application/json' } : {}) },
+      headers: { Accept: 'application/json', ...(options.body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(options.idempotencyKey ? { 'Idempotency-Key': options.idempotencyKey } : {}) },
       ...(options.body !== undefined ? { body: JSON.stringify(options.body) } : {}), signal: controller.signal
     });
     if (controller.signal.aborted) throw abortError();

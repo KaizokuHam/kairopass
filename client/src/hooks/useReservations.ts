@@ -4,7 +4,7 @@ import { ApiRequestError } from '@/services/api';
 import { reservationsApi } from '@/services/reservations';
 import type { ReservationStatus } from '@/types/reservations';
 
-function useAttendeeResource<T>(resourceKey: string, load: (signal: AbortSignal) => Promise<T>) {
+export function useAttendeeResource<T>(resourceKey: string, load: (signal: AbortSignal) => Promise<T>) {
   const { user, status, refreshSession } = useAuth();
   const owner = status === 'AUTHENTICATED' && user?.role === 'ATTENDEE' ? user.id : '';
   const [attempt, setAttempt] = useState(0), generation = useRef(0);
