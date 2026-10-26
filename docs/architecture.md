@@ -38,13 +38,16 @@ module owns private organizer event management; discovery owns public upcoming
 listing/detail reads and their strict query/public-DTO boundary. Reservations owns
 attendee allocation/history/cancellation and transactional expiry. Payments owns
 two-stage simulated checkout, idempotency, owned history and atomic confirmation.
-Future modules are tickets/check-in and analytics. Each owns its router, Zod request validation, service rules,
+Tickets owns verified issuance, owned wallet/detail reads and server-only HMAC
+signing/verification. Future modules are check-in and analytics. Each owns its router, Zod request validation, service rules,
 and persistence operations. Routes should translate HTTP; services should enforce
 business invariants. Modules will call explicit service contracts instead of
 reaching into each other's controllers. Task 03 adds only the four `/api/auth`
 endpoints; Task 05 adds `/api/organizer/events`; Task 07 adds `/api/events`;
 Task 08 adds `/api/reservations`; Task 09 adds nested `/:id/payments` routes.
-Ticket controllers remain later work. [Payments](payments.md) uses the existing
+Task 10 adds nested `/:id/ticket` issuance and `/api/tickets` wallet/detail routes.
+[Ticket contracts](ticketing.md) describe the independent key and recovery boundary.
+[Payments](payments.md) uses the existing
 connection, session/Origin/role guards and reservation inventory primitives.
 See [reservation transaction and worker contracts](reservations.md).
 
@@ -218,8 +221,9 @@ Task 08 allocates/releases inventory with conditional event updates and MongoDB
 transactions. `reservedCount` tracks HELD + CONFIRMED allocations. Expiration
 transitions elapsed holds explicitly and decrements capacity exactly once; no TTL
 deletes reservation history. Task 09 confirms simulated payment/reservation
-states atomically; Tasks 10/11 will issue one ticket and conditionally consume it
-once. Ticket workflows remain planned. See [reservations.md](reservations.md)
+states atomically; Task 10 issues exactly one ticket from durable matching evidence,
+with version writes on every eligibility source and no inventory change. Task 11
+must conditionally consume it once. See [ticketing.md](ticketing.md) and [reservations.md](reservations.md)
 for implemented transaction deadlines, recovery, worker lifecycle and attendee UX.
 
 See [database architecture](database.md) for complete fields/indexes, model limits,
@@ -244,12 +248,17 @@ Invalid signing configuration leaves health/frontend delivery available while
 auth endpoints fail closed with 503. See [authentication](authentication.md).
 
 Role checks alone do not establish resource ownership; future services must
-validate organizer ownership separately. QR tickets will require signed
-payloads and replay-safe, atomic check-in. Simulated payments use durable
+validate organizer ownership separately. QR tickets now use versioned minimal
+payloads, domain-separated HMAC-SHA256 and strict constant-time verification with
+an independent TICKET_HMAC_SECRET. Only owned active details expose credentials;
+wallets omit them. Task 11 must implement replay-safe atomic admission. Simulated payments use durable
 state transitions and idempotency; they never collect real card data.
 
 Configuration comes from the root `.env` or process environment; process values
 take precedence. `MONGODB_URI` is required for database readiness, but not liveness.
+The client build entry sets NODE_ENV=production before loading Vite, so a copied
+development API `.env` cannot select development React in release assets. QR ticket
+details/encoding are loaded separately from the entry chunk.
 An omitted HOST uses loopback for development/test and 0.0.0.0 for production;
 explicit HOST and platform PORT remain authoritative. Hosted deployment must remove
 or change the local example's explicit loopback override.

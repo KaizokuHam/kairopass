@@ -201,6 +201,40 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - Task 10 must issue at most one QR ticket per genuinely CONFIRMED reservation,
   verify durable confirmation/payment evidence, and preserve ticket uniqueness.
 
+## Ticket contract (Task 10)
+
+- Read `docs/ticketing.md` before changing tickets or implementing Task 11.
+- Reuse `modules/tickets`, existing auth/role/Origin/readiness guards, the single
+  connection and bounded serial transaction primitive. No public verification API.
+- Issue only for an owned CONFIRMED reservation, exactly one matching SUCCESS with
+  durable original SUCCESS outcome/completion, and a PUBLISHED event. Free events
+  require explicit zero-value checkout. Do not require event start to be future.
+- Preserve the unique reservation and nonce indexes and original persisted identity.
+  New issuance conditionally writes Event/Reservation/Payment versions together
+  with insertion; public timestamps, inventory, amount, expiry and states stay intact.
+- Ticket failure/uncertainty never changes successful payment or confirmation.
+  Recover by owned wallet/detail reads and explicit idempotent reservation POST;
+  never blindly retry insertion, replace an inactive ticket or issue during GET.
+- Generate IDs/nonces only on the backend. Never hydrate/invent a nonce on reads.
+  Preserve ticket history; no Ticket TTL (startup rejects it), deletion or mutation
+  to USED/REVOKED in this milestone.
+- Use independent strong canonical base64url TICKET_HMAC_SECRET, never JWT_SECRET
+  or a client VITE_* key. Fail ticket configuration with 503 independently.
+- Preserve minimal canonical v1 ID/nonce payload, domain-separated HMAC-SHA256,
+  strict bounded input validation and length-checked crypto.timingSafeEqual.
+  Never log QR credentials. Rotation invalidates old exports; no key ring exists.
+- Wallets omit full credentials. Only owned active details/issuance return QR;
+  used/revoked/unavailable evidence gets history with null QR. No QR browser storage,
+  credential query strings, optimistic success or automatic POST retries.
+- Reuse scoped attendee hooks and guards; abort/hide credentials on identity/session
+  change. Keep readable Q-level QR with four-module white quiet zone and real PNG
+  export, safe filenames and object URL cleanup; show recoverable render/export errors.
+- A signed static QR is copyable and does not prove admission eligibility. Task 11
+  must verify persisted nonce, current event/organizer/reservation/payment/time and
+  atomically win ISSUED -> USED once. Do not trust signature or UI status alone.
+- Preserve real disposable MongoDB 20-request issuance, isolation, rollback/unknown
+  commit recovery, stable reconnect reads and eligibility-source race tests.
+
 ## Verification and Git
 
 - Read `docs/rubric-audit.md` for the Task 07.5 findings and future integration/deployment risks.
@@ -221,6 +255,7 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - `npm run test:discovery` runs public visibility/query integrations; `test:db` includes them.
 - `npm run test:reservations` runs reservation HTTP/replica-set races, expiry and history; `test:db` includes it.
 - `npm run test:payments` runs real idempotency/pending/confirmation/race cases; `test:db` includes it.
+- `npm run test:tickets` runs strict crypto and real ticket issuance/security/race cases; `test:db` includes its integrations.
 - `npm run test:web` runs frontend tests; `npm test` and CI include both workspaces.
 - `npm run test:watch -w client` watches frontend tests; root `test:watch` watches backend tests.
 - Keep changes small and coherent; use conventional commits and the configured authorized Git identity.
@@ -238,7 +273,7 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - 07 — Event Discovery (implemented; see verification record)
 - 08 — Reservation Engine (implemented; see verification record)
 - 09 — Simulated Payment Gateway (implemented; see verification record)
-- 10 — QR Ticketing
+- 10 — QR Ticketing (implemented; see verification record)
 - 11 — Ticket Check-In
 - 12 — Organizer Analytics
 - 13 — Integration Testing & Hardening
@@ -246,4 +281,5 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 
 Future tasks must continue using MongoDB/Mongoose. Implement only the task the
 user authorizes. Tasks 07 discovery, 08 reservations and 09 simulated payments are
-implemented. Task 10 QR ticketing is next and requires separate authorization.
+implemented, as is Task 10 QR ticketing. Task 11 check-in is next and requires
+separate authorization.

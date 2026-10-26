@@ -22,7 +22,7 @@ Submission deadline: **October 27, 2026, 11:59 PM IST**.
 | 07.5 | Mid-project engineering and rubric audit | Completed — see rubric-audit.md for findings and verification |
 | 08 | Reservation Engine | Completed — implementation and local acceptance verified |
 | 09 | Simulated Payment Gateway | Completed — implementation and local acceptance verified |
-| 10 | QR Ticketing | Next — not implemented |
+| 10 | QR Ticketing | Completed — implementation and local acceptance verified |
 | 11 | Ticket Check-In | Upcoming |
 | 12 | Organizer Analytics | Upcoming |
 | 13 | Integration Testing & Hardening | Upcoming |
@@ -448,7 +448,62 @@ limits are process-local. Persistent Atlas/HTTPS/proxy/load and clock synchroniz
 remain deployment work. No current reproducible Task 09 defect or unperformed
 mandatory local workflow check remains.
 
-Ready for **Task 10/14 — Secure QR Ticket Issuance, Digital Ticket Wallet &
-Cryptographic Verification** when separately authorized. It must issue at most one
-ticket per genuinely CONFIRMED reservation using durable confirmation/payment
-evidence and the existing unique Ticket reservation index. Task 10 is not implemented.
+At Task 09 acceptance, Task 10 remained unimplemented. The next record describes
+the separately authorized implementation and its verification.
+
+## Task 10 acceptance record
+
+Accepted locally on **October 27, 2026 (Asia/Calcutta)**. Prerequisites were inspected
+in source, tests, pushed history and the successful Task 09 CI run at
+`373b9db018d33af8c4d57542a886506337e91853`. The clean baseline passed all 706 tests.
+
+| Check | Observed result |
+| --- | --- |
+| Backend scope | POST owned reservation/ticket, GET owned wallet/detail; existing MongoDB Ticket collection/unique indexes; no check-in or public verification endpoint |
+| Confirmation proof | Requires CONFIRMED, exactly one matching SUCCESS with durable original SUCCESS outcome/completion, and a PUBLISHED event; paid/free checks verified |
+| Transaction | Conditional version writes on Event, Reservation and successful payment prevent snapshot write skew; public timestamps, amounts, expiry and inventory unchanged |
+| 20 concurrent issuance requests | Exactly 1 HTTP 201 and 19 HTTP 200; one stored Ticket, same ID and signed QR bytes across every response |
+| Two attendees | Separate persisted IDs/nonces, isolated wallets, cross-owner detail 404 |
+| Failure/recovery | Forced insert failure rolls back with confirmation/payment intact; explicit retry succeeds; real commit followed by forced uncertain outcome returns 503 then recovers same Ticket |
+| Stable identity | Recreated app plus database disconnect/reconnect retains identical signed QR; repeated GETs do not write; repeated POST returns existing record |
+| Eligibility races | Controlled event cancellation, reservation invalidation and payment failure during paused issuance all force fresh revalidation and create zero invalid tickets |
+| History/integrity | USED/REVOKED/event/payment/reservation unavailability suppress QR; corrupt nonce/lifecycle fails closed; nonce never generated on GET; Ticket TTL rejected by additive startup |
+| Cryptography | 36 real unit cases: canonical minimal v1 payload, domain-separated HMAC-SHA256, strict bounded decoding/shape, length-checked timingSafeEqual, tamper/wrong-key/config rejection |
+| Ticket integration suite | 46 real HTTP/disposable replica-set tests; focused test:tickets passes 82 total cases |
+| Frontend | 25 new provider/router/HTTP-boundary and actual QR decode cases; wallet, filters/pages, explicit generation/mutex, history, safe 404/503, stale abort, session/logout and export errors |
+| Browser paid/free | Actual organizer published paid/free events; attendee held, explicitly confirmed each, generated tickets, refreshed, signed out, hit guard, signed back in and restored both records |
+| Export | Browser downloaded complete 1200×2150 PNG; independent jsQR decoder recovered the exact owned server QR payload; repeat GET/POST preserved its SHA-256 digest and identity |
+| Responsive | Desktop 1440, tablet 768 and phone 375 checked; no horizontal overflow; QR remains 256px; contrast, quiet zone, metadata and download controls inspected |
+| Browser diagnostics | Editing/rebuilding caused transient Vite HMR reload errors; fresh final wallet reload had no captured warning/error logs and rendered both real records |
+| Build correction | Copied development API .env exposed development React in release build; explicit production build entry corrected it; 426.08 KB entry and 30.59 KB lazy ticket chunk, no chunk-size warning |
+| Dependencies | Pinned qrcode 1.5.4; test-only jsQR/PNG decoder and type packages; clean lockfile install audited 472 packages with zero known advisories |
+| Complete quality gate | After npm ci: zero-warning lint, both strict TypeScript checks, all 813 tests across 33 files (308 frontend, 505 backend), both production builds; zero failures/skips |
+| Compiled production smoke | Paid/free signing and verification, stable read/repeat issuance, ownership isolation, no-store wallet/detail, unchanged counters, Secure/HttpOnly cookie and revoked session checks passed |
+| Compiled failure/lifecycle | Missing/weak/JWT-reused ticket key each returns ticket 503 while confirmed checkout/discovery remain usable; invalid auth/unavailable DB fail closed; all six modes drain the actual server/worker/connection and exit 0 with no credential-bearing logs |
+
+Detailed contracts, three sequence/state/verification diagrams, secret generation
+and rotation, static-QR limitations, DTOs, APIs and failure recovery are in
+[ticketing.md](ticketing.md). README, database, architecture, reservations, payments,
+environment template and persistent engineering instructions are synchronized.
+
+All test data belongs to unique disposable MongoDB 8.2.6 replica sets and `.test`
+accounts, with ephemeral independent keys. No application/Atlas database was used
+or cleaned. Preview processes/tabs and viewport overrides were stopped/reset.
+Browser proof, decoded-export digest, logs and smoke harnesses remain ignored.
+
+Coherent conventional commits cover backend issuance and cryptography, the typed
+wallet/QR/PNG experience, lifecycle/TTL safeguards and documentation. Final remote
+head and exact-revision push-triggered CI are checked at delivery; see
+[GitHub Actions](https://github.com/KaizokuHam/kairopass/actions/workflows/ci.yml).
+
+Current limits: static QRs are copyable; rotation invalidates old exports; there is
+no key-ring grace period, PDF, print flow, scanner, admission endpoint, revocation,
+refund, transfer or analytics. Canvas/Blob/download capability is needed for PNG.
+Deployment must supply an independent strong TICKET_HMAC_SECRET and use the same
+key on every instance. Legacy payment records without confirmation evidence fail
+closed. Atlas/HTTPS/proxy/clock synchronization and production load remain release work.
+
+Ready for **Task 11/14 — Organizer Ticket Check-In, QR Scanning & Atomic Single-Use
+Validation**, when separately authorized. Reuse strict server verification, compare
+the actual persisted nonce, validate current organizer/event/booking/time state and
+atomically win ISSUED → USED once. Signature authenticity alone is not admission.

@@ -173,7 +173,7 @@ event price or client input. No additional inventory is allocated on confirmatio
 
 | Field | Rules |
 | --- | --- |
-| `_id` | Generated ObjectId |
+| `_id` | Task 10 issuance uses a backend random 12-byte ObjectId |
 | `reservationId` | Required immutable ObjectId ref Reservation; globally unique |
 | `qrNonce` | Required immutable 43-character base64url string; default from `randomBytes(32)`; unique |
 | `status` | ISSUED (default), USED, REVOKED |
@@ -185,6 +185,17 @@ prove entropy: never accept caller-supplied nonce values through HTTP inputs.
 The unique reservation index limits issuance to one ticket even under concurrent
 inserts. Schema enums do not enforce allowed state transitions or single-use
 check-in; conditional service updates in Task 11 will enforce those rules.
+
+Task 10's [ticket service](ticketing.md) verifies an owned CONFIRMED reservation,
+exactly one matching durable successful simulated payment and a PUBLISHED event.
+It touches all three eligibility source versions in its insertion transaction,
+leaving amounts, expiry, statuses, public timestamps and reservedCount unchanged.
+Existing unique reservation/nonce indexes enforce exactly-one issuance. Repeated
+requests and reads use the original persisted nonce, never a hydration default.
+Wallets are owner-scoped bounded snapshot aggregations; only active owned details
+return signed QR credentials. Additive startup rejects Ticket TTL indexes; ticket
+and reservation history must never be automatically deleted. No schema/index drop
+or migration is needed for Task 10.
 
 ## AuthSession (`authsessions`) — Task 03 infrastructure
 

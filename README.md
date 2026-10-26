@@ -24,7 +24,8 @@ guests, and understand attendance.
 Payments will be simulated. No real card processing or real payment collection
 is planned. Public discovery and ten-minute ticket reservations are available.
 Simulated checkout and durable reservation confirmation are available. No real
-money is collected. Digital ticket issuance remains the next milestone.
+money is collected. Signed QR issuance, an attendee wallet and complete ticket PNG
+downloads are available. Organizer check-in remains Task 11.
 
 ## Stack and architecture
 
@@ -81,6 +82,7 @@ The `/api` proxy continues to target `http://127.0.0.1:4000`.
 | `npm run test:discovery` | Run public visibility, search, filtering, and pagination integration tests |
 | `npm run test:reservations` | Run real allocation, expiry, cancellation, ownership, and concurrency tests |
 | `npm run test:payments` | Run real simulated-payment idempotency, pending recovery, confirmation and race tests |
+| `npm run test:tickets` | Run signing/verification and real MongoDB issuance, isolation and recovery tests |
 | `npm run test:watch` | Run backend tests in watch mode |
 | `npm run build` | Compile client and server |
 | `npm run check` | Run lint, type checks, tests, and builds |
@@ -239,16 +241,20 @@ does not read cookies or use browser storage. See the
 
 ## Implementation status
 
-**Current milestone: Task 09 implemented.** Attendees can reserve one ticket for
+**Current milestone: Task 10 implemented.** Attendees can reserve one ticket for
 ten minutes, run a clearly labelled simulated success/failure checkout, retry a
 failed attempt, and view retained reservation/payment history. No money is collected.
 Idempotency keys bind immutable requests; PENDING attempts survive interruptions;
 successful payment and HELD → CONFIRMED commit atomically without reallocating inventory.
-Free holds use explicit zero-value confirmation. Digital tickets remain Task 10.
-See [payment architecture and recovery](docs/payments.md),
+Free holds use explicit zero-value confirmation. Confirmed reservations offer
+Generate Ticket or View Ticket; the attendee wallet retains real signed tickets
+with stable identities and complete PNG download. Issuance requires matching
+durable successful-payment evidence and never changes inventory or confirmation.
+See [ticket signing, recovery and limitations](docs/ticketing.md),
+[payment architecture and recovery](docs/payments.md),
 [reservation invariants](docs/reservations.md), and the
-[Task 09 acceptance record](docs/implementation-plan.md#task-09-acceptance-record).
-The quality gate passes **706 tests / 30 files** (283 frontend, 423 backend), lint,
+[Task 10 acceptance record](docs/implementation-plan.md#task-10-acceptance-record).
+The quality gate passes **813 tests / 33 files** (308 frontend, 505 backend), lint,
 strict types and both builds. Earlier milestone records below are historical.
 
 Tasks 01–02 establish the application and MongoDB foundation. Task 03 adds the
@@ -306,8 +312,8 @@ attendee access, queries/pagination, and responsive layouts. Compiled-server che
 also verify public access without JWT configuration and safe database failures.
 
 Task 08 adds reservation orchestration, atomic inventory and expiring holds.
-Task 09 adds simulated checkout and atomic confirmation. QR generation, check-in,
-and analytics remain upcoming.
+Task 09 adds simulated checkout and atomic confirmation. Task 10 adds secure QR
+ticket issuance and the attendee wallet. Check-in and analytics remain upcoming.
 Displayed public capacity never guarantees allocation.
 [AGENTS.md](AGENTS.md) records the permanent stack and
 engineering rules for future sessions.

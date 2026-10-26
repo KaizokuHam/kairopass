@@ -194,7 +194,9 @@ Owned reservation details retain their countdown and add clearly labelled outcom
 radios, exact cost, pending/uncertain feedback, result and paginated payment history.
 Success appears only from a durable API result and a fresh reservation read. It
 shows the simulated transaction reference, amount and available completion time.
-Digital ticket generation remains explicitly the next milestone. Free checkout
+Confirmed reservation details now offer Task 10's explicit Generate Ticket or
+View Ticket after an owned ticket lookup. Issuance errors preserve payment SUCCESS
+and reservation CONFIRMED; no GET automatically issues a ticket. Free checkout
 uses **Confirm Free Reservation**. Expired/cancelled/confirmed records offer no new
 checkout; an existing pending request may be resolved safely to its terminal result.
 
@@ -230,8 +232,10 @@ unknown request; they return a conflict rather than guessing an authorization.
 There is no real provider, webhook verification, charge/refund/dispute handling,
 managed production deployment or claim of financial-processing certification.
 
-**Task 10 must issue at most one QR ticket for each genuinely CONFIRMED reservation.**
-It must respect the unique Ticket reservation index, verify durable confirmation/
-successful-payment evidence, and never mint tickets from client assertions or a
-payment timeout. QR issuance, wallets, cryptographic verification, check-in and
-analytics are not implemented by Task 09.
+**Task 10 now issues at most one QR ticket for each genuinely CONFIRMED reservation.**
+The separate [ticket service](ticketing.md) verifies the matching durable SUCCESS,
+stored SUCCESS simulation outcome/completion and reservation amount, plus event
+eligibility. Conditional version writes serialize issuance with eligibility changes.
+The unique Ticket reservation index and persisted nonce make repeats recoverable.
+Signing uses an independent server-only TICKET_HMAC_SECRET. Ticket-only 503s never
+change payment state or inventory. Check-in and analytics remain future work.

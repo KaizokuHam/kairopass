@@ -206,7 +206,7 @@ owned details; no optimistic inventory decrement or paid/confirmed success appea
 pagination, loading/empty/error/retry states. `/attendee/reservations/:id` shows the
 reference, event summary, exact amount, timestamps, status and live countdown.
 HELD is Awaiting Payment; other labels are Confirmed, Hold Expired, and Cancelled.
-The dashboard links to My Reservations; My Tickets remains Task 10.
+The dashboard links to My Reservations and the implemented Task 10 My Tickets wallet.
 
 The countdown uses serverNow/expiry and a memory-only receipt timestamp to account
 for device clock offset. It is informational: at zero cancellation becomes disabled
@@ -225,8 +225,10 @@ There is no browser-storage identity/reservation cache or automatic POST retry.
 
 The confirmation requirements below are now enforced by the implemented
 [Task 09 payment service](payments.md). Simulation, result/history and same-key
-recovery replace the old next-milestone checkout placeholder. Ticket issuance
-remains Task 10.
+recovery replace the old next-milestone checkout placeholder. Task 10 now adds
+[explicit ticket issuance](ticketing.md) from confirmed reservation details.
+It verifies successful payment evidence, preserves the price/deadline/counter, and
+never reverts confirmation on issuance failure. GET reads do not issue tickets.
 
 `npm run test:reservations` runs real HTTP/replica-set tests; `test:db`, `npm test`,
 `npm run check`, and CI include them. Tests own a disposable MongoDB 8.2.6 replica
