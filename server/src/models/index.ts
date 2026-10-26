@@ -32,5 +32,8 @@ export async function initializeModels(): Promise<void> {
     if (model.modelName === 'Reservation' && actual.some((index) => index.expireAfterSeconds !== undefined)) {
       throw new Error('Reservation history cannot have a TTL index.');
     }
+    if (model.modelName === 'Ticket' && actual.some((index) => index.expireAfterSeconds !== undefined)) {
+      throw new Error('Ticket history cannot have a TTL index.');
+    }
   }
 }

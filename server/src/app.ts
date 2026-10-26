@@ -14,6 +14,8 @@ import { createEventsRouter } from './modules/events/events.routes.js';
 import { createDiscoveryRouter } from './modules/discovery/discovery.routes.js';
 import { createReservationsRouter } from './modules/reservations/reservations.routes.js';
 import { createPaymentsRouter } from './modules/payments/payments.routes.js';
+import { parseTicketEnvironment, type TicketConfig } from './modules/tickets/tickets.crypto.js';
+import { createTicketIssuanceRouter, createTicketsRouter } from './modules/tickets/tickets.routes.js';
 
 interface AppOptions {
   mode?: 'development' | 'test' | 'production';
@@ -21,6 +23,7 @@ interface AppOptions {
   clientDistPath?: string;
   logLevel?: 'info' | 'silent';
   authEnvironment?: NodeJS.ProcessEnv;
+  ticketEnvironment?: NodeJS.ProcessEnv;
 }
 
 export function createApp(options: AppOptions = {}) {
@@ -70,6 +73,11 @@ export function createApp(options: AppOptions = {}) {
   app.use('/api/auth', createAuthRouter(authConfig));
   app.use('/api/organizer/events', createEventsRouter(authConfig));
   app.use('/api/events', createDiscoveryRouter());
+  let ticketConfig: TicketConfig | null;
+  try { ticketConfig = parseTicketEnvironment({ ...(options.authEnvironment ?? process.env), TICKET_HMAC_SECRET: (options.ticketEnvironment ?? options.authEnvironment ?? process.env).TICKET_HMAC_SECRET }); }
+  catch { ticketConfig = null; }
+  app.use('/api/reservations/:id/ticket', createTicketIssuanceRouter(authConfig, ticketConfig));
+  app.use('/api/tickets', createTicketsRouter(authConfig, ticketConfig));
   app.use('/api/reservations/:id/payments', createPaymentsRouter(authConfig));
   app.use('/api/reservations', createReservationsRouter(authConfig));
   // Match the /api path boundary, including /api itself, before any SPA routes.

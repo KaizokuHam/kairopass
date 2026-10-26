@@ -21,6 +21,7 @@
     "test:discovery": "npm run test:discovery -w server",
     "test:reservations": "npm run test:reservations -w server",
     "test:payments": "npm run test:payments -w server",
+    "test:tickets": "npm run test:tickets -w server",
     "test:watch": "npm run test:watch -w server",
     "typecheck": "npm run typecheck --workspaces",
     "lint": "eslint . --max-warnings 0",

@@ -2,9 +2,12 @@ import { createApp } from './app.js';
 import { env } from './config/env.js';
 import { connectDatabase, disconnectDatabase } from './config/database.js';
 import { parseAuthEnvironment } from './config/auth.js';
+import { parseTicketEnvironment } from './modules/tickets/tickets.crypto.js';
 import { createExpirationWorker } from './modules/reservations/reservation-expiration.js';
 
 const expirationWorker = createExpirationWorker();
+try { parseTicketEnvironment(process.env); }
+catch { console.error('Ticket signing unavailable: configure an independent strong TICKET_HMAC_SECRET. See .env.example.'); }
 
 try {
   parseAuthEnvironment(process.env);
