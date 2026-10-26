@@ -62,7 +62,7 @@ describe('protected routes and role-aware navigation', () => {
     boundary(() => userResponse()); show('/attendee/dashboard');
     expect(await screen.findByText(attendee.email)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'My Reservations' })).toHaveAttribute('href', '/attendee/reservations');
-    expect(screen.getByText('My Tickets').closest('li')).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('link', { name: 'My Tickets' })).toHaveAttribute('href', '/attendee/tickets');
     for (const link of screen.getAllByRole('link', { name: /Explore Events/ })) expect(link).toHaveAttribute('href', '/events');
   });
 

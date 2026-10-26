@@ -1,4 +1,5 @@
 import { Route, Routes } from 'react-router';
+import { lazy, Suspense } from 'react';
 import { AppLayout } from '@/layouts/AppLayout';
 import { HomePage } from '@/pages/HomePage';
 import { VisionPage } from '@/pages/VisionPage';
@@ -20,6 +21,8 @@ import { AttendeeLayout } from '@/layouts/AttendeeLayout';
 import { MyReservationsPage } from '@/pages/attendee/MyReservationsPage';
 import { ReservationDetailsPage } from '@/pages/attendee/ReservationDetailsPage';
 import { PaymentRecoveryProvider } from '@/context/PaymentRecoveryProvider';
+import { MyTicketsPage } from '@/pages/attendee/MyTicketsPage';
+const TicketDetailsPage = lazy(() => import('@/pages/attendee/TicketDetailsPage').then((module) => ({ default: module.TicketDetailsPage })));
 
 export function App() {
   return (
@@ -33,6 +36,7 @@ export function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<RoleGuard role="ATTENDEE" />}><Route path="attendee/dashboard" element={<DashboardPage role="ATTENDEE" />} />
             <Route path="attendee/reservations" element={<AttendeeLayout />}><Route index element={<MyReservationsPage />} /><Route path=":id" element={<ReservationDetailsPage />} /></Route>
+            <Route path="attendee/tickets" element={<AttendeeLayout />}><Route index element={<MyTicketsPage />} /><Route path=":id" element={<Suspense fallback={<p role="status">Loading ticket…</p>}><TicketDetailsPage /></Suspense>} /></Route>
           </Route>
           <Route element={<RoleGuard role="ORGANIZER" />}><Route path="organizer/dashboard" element={<DashboardPage role="ORGANIZER" />} />
             <Route path="organizer/events" element={<OrganizerLayout />}><Route index element={<OrganizerEventsPage />} /><Route path="new" element={<CreateEventPage />} />

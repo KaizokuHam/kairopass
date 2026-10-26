@@ -42,7 +42,7 @@ export function ExploreEventsPage() {
           {data.events.length ? <div className="discovery-grid">{data.events.map((event) => <PublicEventCard key={event.id} event={event} now={now} search={queryKey} />)}</div> : <DiscoveryEmptyState filtered={filtered} searched={!!query.q} outside={data.pagination.total > 0} clear={data.pagination.total > 0 ? () => change({ page: 1 }) : clear} />}
           {data.pagination.totalPages > 0 && <nav className="discovery-pagination" aria-label="Event pagination"><Button variant="ghost" onClick={() => change({ page: query.page - 1 })} disabled={query.page <= 1}><ArrowLeft size={15} />Previous</Button><span>Page {data.pagination.page} of {data.pagination.totalPages}</span><Button variant="ghost" onClick={() => change({ page: query.page + 1 })} disabled={query.page >= data.pagination.totalPages || query.page >= 10000}>Next<ArrowRight size={15} /></Button></nav>}
         </>}
-        <p className="discovery-inventory-note">Availability reflects the latest loaded inventory. Reservations are coming soon.</p>
+        <p className="discovery-inventory-note">Availability reflects the latest loaded inventory. Reserve a ten-minute hold, confirm it through simulated checkout, then generate your ticket.</p>
       </div>
     </div>
   </section>;

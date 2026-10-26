@@ -15,6 +15,11 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 
 function safeMessage(status: number, code: string): string {
   const eventMessages: Record<string, string> = {
+    TICKET_NOT_FOUND: 'This ticket could not be found.',
+    TICKET_NOT_ELIGIBLE: 'Ticket generation requires a confirmed reservation, verified payment and available event.',
+    TICKET_CONFIGURATION_UNAVAILABLE: 'Ticket signing is temporarily unavailable. Your confirmed reservation is preserved.',
+    TICKET_UNAVAILABLE: 'Ticket issuance could not be verified. Check My Tickets before explicitly retrying.',
+    TICKET_ISSUANCE_UNKNOWN: 'Your ticket may have been issued. Check My Tickets or explicitly retry generation.',
     PAYMENT_INVALID_INPUT: 'Please choose a valid simulation outcome and retry using its original request key.',
     PAYMENT_IDEMPOTENCY_CONFLICT: 'This request key belongs to a different payment choice. Check the original payment status.',
     PAYMENT_ATTEMPT_NOT_FOUND: 'This payment attempt could not be found.',

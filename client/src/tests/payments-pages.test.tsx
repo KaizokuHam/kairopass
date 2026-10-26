@@ -12,6 +12,7 @@ import type { AttendeeReservation } from '@/types/reservations';
 import { attendee, deferred, failure, json, userResponse } from './fixtures';
 import { held, reservationResponse } from './reservations-fixtures';
 import { confirmed, failedPayment, paymentHistory, paymentKey, paymentResponse, pendingPayment, successPayment } from './payments-fixtures';
+import { ticketList } from './tickets-fixtures';
 const base = '/api/reservations/' + held.id + '/payments', details = '/attendee/reservations/' + held.id;
 function Probe() { const navigate = useNavigate(); return <><button onClick={() => { void navigate('/attendee/dashboard'); }}>Leave checkout</button><button onClick={() => { void navigate(details); }}>Return to checkout</button></>; }
 function show() { return render(<MemoryRouter useTransitions={false} initialEntries={[details]}><AuthProvider><App /><Probe /></AuthProvider></MemoryRouter>); }
@@ -25,6 +26,7 @@ function boundary(options: {
   let reservation = options.reservation ?? held, payments = options.payments ?? [];
   const fetcher = vi.fn(async (path: string, init: RequestInit) => {
     if (path === '/api/auth/me') return options.me?.() ?? userResponse();
+    if (path.startsWith('/api/tickets?')) return ticketList();
     if (path === '/api/auth/logout') return json({ success: true, message: 'Logged out successfully.' });
     if (path === '/api/health') return json({ success: true, message: 'KairoPass API is running' });
     if (path === '/api/reservations/' + held.id) return reservationResponse(reservation);
@@ -69,7 +71,7 @@ describe('simulated checkout product flow', () => {
     expect(await screen.findByText('Confirmed', { selector: '.reservation-status' })).toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: 'Reservation Confirmed', level: 2 })).toBeInTheDocument();
     expect(screen.getAllByText('sim_attempt_1').length).toBeGreaterThan(0);
-    expect(screen.getByText(/Digital ticket generation is the next milestone/)).toBeInTheDocument();
+    expect(screen.getByText(/Generate or view your digital ticket below/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Run Simulated Payment' })).not.toBeInTheDocument();
     expect(posts(fetcher)).toHaveLength(1); expect(requestKey(posts(fetcher)[0]![1])).toMatch(/^[a-f\d-]{36}$/i);
     expect(JSON.parse(posts(fetcher)[0]![1].body as string)).toEqual({ simulationOutcome: 'SUCCESS' });

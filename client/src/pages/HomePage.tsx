@@ -37,7 +37,7 @@ export function HomePage() {
             </article>
           ))}
         </div>
-        <div className="foundation-note"><span>Your next experience is out there.</span><p>Explore published events now. Reservations and ticketing are on the way.</p><Link to="/events" aria-label="Discover upcoming events"><ArrowRight size={18} /></Link></div>
+        <div className="foundation-note"><span>Your next experience is out there.</span><p>Discover events, reserve your place, and keep your signed tickets in one wallet.</p><Link to="/events" aria-label="Discover upcoming events"><ArrowRight size={18} /></Link></div>
       </section>
     </>
   );

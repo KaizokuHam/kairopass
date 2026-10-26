@@ -12,6 +12,7 @@ import { ApiRequestError } from '@/services/api';
 import { formatEventDate, formatPrice, localTimezone } from '@/lib/event-format';
 import { PaymentSimulation } from '@/components/payments/PaymentSimulation';
 import type { PaymentResult } from '@/types/payments';
+import { TicketAction } from '@/components/tickets/TicketAction';
 
 export function ReservationDetailsPage() {
   const { id = '' } = useParams();
@@ -45,6 +46,7 @@ function ReservationDetails({ id }: { id: string }) {
         <aside className="reservation-hold-panel"><Clock3 size={25} aria-hidden="true" />{reservation.status === 'HELD' ? <><HoldCountdown remaining={remaining} expired={expired} /><p>Complete a simulated checkout below before your hold ends. No money will be collected.</p><p className="reservation-muted">This is a temporary hold for one ticket.</p><Button className="button-danger" disabled={remaining <= 0 || mutation.pending || !!failure} onClick={() => setDialog(true)}>{mutation.pending ? 'Finishing reservation action…' : 'Cancel hold'}</Button></> : <><h2>{reservation.status === 'EXPIRED' ? 'A little room for a new plan.' : reservation.status === 'CANCELLED' ? 'Your hold is cancelled.' : 'Your reservation is confirmed.'}</h2><p>{reservation.status === 'CONFIRMED' ? 'This reservation no longer has a hold countdown.' : 'This reservation remains in your history. Explore events to reserve again.'}</p><Link className="button button-primary" to="/events">Explore Events</Link></>}</aside>
       </div>
       {snapshot && <PaymentSimulation snapshot={snapshot} remaining={remaining} run={mutation.run} pending={mutation.pending} changed={paymentChanged} />}
+      {reservation.status === 'CONFIRMED' && <TicketAction reservationId={reservation.id} />}
       {failure && <div className="reservation-error" role="alert"><p>{uncertainReservation(failure) ? 'This operation may have completed. Check My Reservations or refresh this reservation before trying again.' : failure.message}</p><Button onClick={refresh}>Refresh reservation state</Button></div>}
       {dialog && <ConfirmActionDialog title="Cancel this hold?" confirmLabel="Cancel hold" dismissLabel="Keep reservation" danger pending={mutation.pending} blocked={remaining <= 0} close={() => setDialog(false)} confirm={() => { void cancel(); }}><p>Release your ticket hold for {reservation.event?.title ?? 'this event'}? You can reserve again if capacity is available.</p>{remaining <= 0 && <p>The deadline has passed. Refreshing the server state.</p>}</ConfirmActionDialog>}
     </>}

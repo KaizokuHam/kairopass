@@ -9,6 +9,7 @@ import './events.css';
 import './discovery.css';
 import './reservations.css';
 import './payments.css';
+import './tickets.css';
 import { AuthProvider } from './context/AuthProvider';
 
 createRoot(document.getElementById('root')!).render(

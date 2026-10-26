@@ -14,6 +14,7 @@ import { publicDetail, publicEvent } from './discovery-fixtures';
 import { held, reservationList, reservationResponse, serverNow } from './reservations-fixtures';
 import type { ReservationStatus } from '@/types/reservations';
 import { paymentHistory } from './payments-fixtures';
+import { ticketList } from './tickets-fixtures';
 
 const details = '/attendee/reservations/' + held.id;
 function Probe() {
@@ -27,6 +28,7 @@ function boundary(respond: (path: string, options: RequestInit) => Response | Pr
   let currentReservation = held;
   const fetcher = vi.fn(async (path: string, options: RequestInit) => {
     if (path === '/api/auth/me') return auth();
+    if (path.startsWith('/api/tickets?')) return ticketList();
     if (path === '/api/health') return json({ success: true, message: 'KairoPass API is running' });
     if (path.startsWith('/api/events/')) return publicDetail();
     if (/\/payments\?/.test(path)) return paymentHistory([], {}, currentReservation);
