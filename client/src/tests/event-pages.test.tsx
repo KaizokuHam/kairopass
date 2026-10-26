@@ -78,6 +78,16 @@ describe('organizer event pages in the protected application', () => {
     unavailable = false; await userEvent.click(screen.getByRole('button', { name: 'Retry connection' }));
     await screen.findByRole('article', { name: sampleEvent.title });
   });
+  it('applies pending search at page one when Next is clicked before debounce finishes', async () => {
+    const events = Array.from({ length: 10 }, (_, index) => ({ ...sampleEvent, id: (BigInt('0x' + sampleEvent.id) + BigInt(index)).toString(16), title: 'Workshop ' + index }));
+    const fetcher = boundary(() => eventsResponse(events, { total: 11, totalPages: 2 }));
+    show(); await screen.findByRole('article', { name: 'Workshop 0' });
+    await userEvent.type(screen.getByLabelText('Search by title'), 'New');
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+    await waitFor(() => expect(listCalls(fetcher).at(-1)?.[0]).toContain('search=New'));
+    expect(listCalls(fetcher).at(-1)?.[0]).toContain('page=1');
+    expect(listCalls(fetcher).some(([path]) => path.includes('page=2'))).toBe(false);
+  });
   it('displays owned detail data and reads cancelled events without edit actions', async () => {
     boundary(() => eventResponse({ ...sampleEvent, status: 'CANCELLED' })); show('/organizer/events/' + sampleEvent.id);
     expect(await screen.findByRole('heading', { name: sampleEvent.title })).toBeInTheDocument();

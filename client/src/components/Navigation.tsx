@@ -19,7 +19,7 @@ export function Navigation() {
     <button ref={trigger} className="mobile-menu-toggle" type="button" aria-expanded={open} aria-controls="site-navigation" aria-label={open ? 'Close navigation' : 'Open navigation'} onClick={() => setOpen((value) => !value)}>{open ? <X size={21} /> : <Menu size={21} />}</button>
     <nav id="site-navigation" aria-label="Main navigation" className={`site-navigation ${open ? 'is-open' : ''}`}>
       <div className="main-nav"><NavLink to="/" end>Overview</NavLink><NavLink to="/vision">The vision</NavLink>
-        {auth.status === 'AUTHENTICATED' && auth.user && <NavLink to={dashboardPath(auth.user.role)}>Dashboard</NavLink>}</div>
+        {auth.status === 'AUTHENTICATED' && auth.user && <><NavLink to={dashboardPath(auth.user.role)}>Dashboard</NavLink>{auth.user.role === 'ORGANIZER' && <NavLink to="/organizer/events">My Events</NavLink>}</>}</div>
       <div className="nav-actions">
         {auth.status === 'INITIALIZING' && <span className="nav-session" role="status"><LoaderCircle size={14} className="spin" />Checking session</span>}
         {auth.status === 'AUTHENTICATED' && auth.user && <><span className="nav-user" title={auth.user.name}>{auth.user.name}<small>{auth.user.role.toLowerCase()}</small></span><LogoutButton /></>}

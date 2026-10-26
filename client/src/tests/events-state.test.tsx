@@ -69,4 +69,20 @@ describe('organizer-scoped request state', () => {
     await expect(result.current.mutation.run((signal) => eventsApi.cancelEvent(sampleEvent.id, signal))).rejects.toMatchObject({ code: 'BUSY' });
     unmount(); await act(async () => { pending.resolve(eventResponse()); await rejected; });
   });
+  it('never shows an old organizer’s response under a newly authenticated account', async () => {
+    const old = deferred<Response>(); const other = { ...organizer, id: '507f1f77bcf86cd799439099', name: 'Other Organizer' };
+    let account = organizer;
+    const fetcher = vi.fn((path: string) => {
+      if (path === '/api/auth/me') return Promise.resolve(userResponse(organizer));
+      if (path === '/api/auth/login') { account = other; return Promise.resolve(userResponse(other)); }
+      return account === organizer ? old.promise : Promise.resolve(eventsResponse([{ ...sampleEvent, organizerId: other.id, title: 'Other organizer event' }]));
+    });
+    vi.stubGlobal('fetch', fetcher);
+    const { result } = renderHook(() => ({ events: useOrganizerEvents({}), auth: useAuth() }), { wrapper });
+    await waitFor(() => expect(fetcher.mock.calls.some(([path]) => path.startsWith('/api/organizer/events'))).toBe(true));
+    await act(() => result.current.auth.login({ email: 'other@example.test', password: 'Test-only password' }));
+    await waitFor(() => expect(result.current.events.data?.events[0]?.title).toBe('Other organizer event'));
+    await act(async () => { old.resolve(eventsResponse()); });
+    expect(result.current.events.data?.events[0]?.organizerId).toBe(other.id);
+  });
 });

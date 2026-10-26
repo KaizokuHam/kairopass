@@ -31,7 +31,8 @@ export function OrganizerEventsPage() {
   function change(name: string, value: string) {
     const next = new URLSearchParams({ page: '1', limit: String(limit), sort });
     if (status) next.set('status', status); if (searchText.trim()) next.set('search', searchText.trim());
-    if (value) next.set(name, value); else next.delete(name);
+    if (name === 'page' && searchText.trim() !== search.trim()) next.set('page', '1');
+    else if (value) next.set(name, value); else next.delete(name);
     setParams(next);
   }
   const data = resource.data;
