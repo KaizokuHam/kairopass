@@ -1,4 +1,5 @@
 import { Router, type ErrorRequestHandler } from 'express';
+import mongoose from 'mongoose';
 import type { AuthConfig } from '../../config/auth.js';
 import { env } from '../../config/env.js';
 import { isDatabaseReady, requireDatabase } from '../../config/database.js';
@@ -10,6 +11,12 @@ import * as controller from './events.controller.js';
 
 const eventsErrorHandler: ErrorRequestHandler = (error: unknown, _req, res, next) => {
   if (error instanceof ApiError) { next(error); return; }
+  if (error instanceof mongoose.mongo.MongoServerError && error.code === 50) {
+    next(new ApiError(503, 'EVENT_QUERY_TIMEOUT', 'The event query took too long. Narrow the filters and retry.')); return;
+  }
+  if (error instanceof mongoose.mongo.MongoServerError && error.code === 112) {
+    next(new ApiError(409, 'EVENT_UPDATE_CONFLICT', 'The event changed. Reload it before trying again.')); return;
+  }
   const unavailable = !isDatabaseReady() || (error instanceof Error && [
     'MongoNetworkError', 'MongoNetworkTimeoutError', 'MongoServerSelectionError',
     'MongooseServerSelectionError', 'MongoNotConnectedError', 'MongoTopologyClosedError', 'MongoOperationTimeoutError'

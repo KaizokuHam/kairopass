@@ -44,7 +44,7 @@ async function conditionalWrite(event: EventDocument, fields: UpdateEventInput |
 
 export async function updateEvent(organizerId: string, id: string, input: UpdateEventInput) {
   const event = await ownedEvent(organizerId, id);
-  if (event.status === 'CANCELLED') throw new ApiError(409, 'INVALID_EVENT_STATE', 'Cancelled events cannot be edited.');
+  if (event.status !== 'DRAFT' && event.status !== 'PUBLISHED') throw new ApiError(409, 'INVALID_EVENT_STATE', 'Only drafts and published events can be edited.');
   if (event.status === 'PUBLISHED' && Object.keys(input).some((key) => !['title', 'description', 'venue'].includes(key))) {
     throw new ApiError(409, 'INVALID_EVENT_STATE', 'Published events allow only title, description, and venue edits.');
   }
@@ -68,7 +68,7 @@ export async function publishEvent(organizerId: string, id: string) {
 export async function cancelEvent(organizerId: string, id: string) {
   return mongoose.connection.transaction(async (session) => {
     const event = await ownedEvent(organizerId, id, session);
-    if (event.status === 'CANCELLED') throw new ApiError(409, 'INVALID_EVENT_STATE', 'This event is already cancelled.');
+    if (event.status !== 'DRAFT' && event.status !== 'PUBLISHED') throw new ApiError(409, 'INVALID_EVENT_STATE', 'Only drafts and published events can be cancelled.');
     if (event.reservedCount !== 0 || await Reservation.exists({
       eventId: event._id, status: { $in: [...ACTIVE_RESERVATION_STATUSES] }
     }).session(session)) {
