@@ -104,7 +104,7 @@ describe('owned ticket wallet and details', () => {
   });
   it.each([null, organizer])('guards guest and other-role navigation %#', async (user) => {
     const fetcher = boundary({ me: () => user ? userResponse(user) : failure(401) }); show(detailPath);
-    await waitFor(() => expect(screen.queryByText('Checking your session…')).not.toBeInTheDocument());
+    await screen.findByRole('heading', { name: user ? 'This space belongs to another role.' : 'Welcome back.' });
     expect(fetcher.mock.calls.some(([path]) => path.startsWith('/api/tickets'))).toBe(false);
   });
   it('allowlists only attendee ticket destinations for post-login return', () => {
