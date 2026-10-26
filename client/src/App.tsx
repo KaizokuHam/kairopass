@@ -23,6 +23,7 @@ import { ReservationDetailsPage } from '@/pages/attendee/ReservationDetailsPage'
 import { PaymentRecoveryProvider } from '@/context/PaymentRecoveryProvider';
 import { MyTicketsPage } from '@/pages/attendee/MyTicketsPage';
 const TicketDetailsPage = lazy(() => import('@/pages/attendee/TicketDetailsPage').then((module) => ({ default: module.TicketDetailsPage })));
+const EventCheckInPage = lazy(() => import('@/pages/organizer/EventCheckInPage').then((module) => ({ default: module.EventCheckInPage })));
 
 export function App() {
   return (
@@ -40,7 +41,7 @@ export function App() {
           </Route>
           <Route element={<RoleGuard role="ORGANIZER" />}><Route path="organizer/dashboard" element={<DashboardPage role="ORGANIZER" />} />
             <Route path="organizer/events" element={<OrganizerLayout />}><Route index element={<OrganizerEventsPage />} /><Route path="new" element={<CreateEventPage />} />
-              <Route path=":id" element={<OrganizerEventDetailsPage />} /><Route path=":id/edit" element={<EditEventPage />} /></Route>
+              <Route path=":id" element={<OrganizerEventDetailsPage />} /><Route path=":id/edit" element={<EditEventPage />} /><Route path=":id/check-in" element={<Suspense fallback={<p role="status">Loading admission workspace…</p>}><EventCheckInPage /></Suspense>} /></Route>
           </Route>
         </Route>
         <Route path="*" element={<NotFoundPage />} />

@@ -7,6 +7,7 @@ import { EventDetails } from '@/components/events/EventDetails';
 import { EventStatusBadge } from '@/components/events/EventStatusBadge';
 import { EventError, EventLoading } from '@/components/events/EventFeedback';
 import { EventActions } from '@/components/events/EventActions';
+import { formatEventDate } from '@/lib/event-format';
 export function OrganizerEventDetailsPage() {
   const { id = '' } = useParams(); const resource = useOrganizerEvent(id); const location = useLocation(); const navigate = useNavigate();
   const [actionNotice, setActionNotice] = useState<{ id: string; message: string } | null>(null);
@@ -20,6 +21,7 @@ export function OrganizerEventDetailsPage() {
     <header className="events-heading"><EventStatusBadge status={event.status} /><h1 id="event-title" tabIndex={-1}>{event.title}</h1><p>Your event, from the first idea to the moment it happens.</p></header>
     {event.status !== 'CANCELLED' ? <EventActions event={event} reload={resource.reload} changed={(message) => { setActionNotice({ id, message }); navigate(location.pathname + location.search + location.hash, { replace: true, state: null }); resource.reload(); }} />
       : <p className="event-notice">This event is cancelled. Its details remain available for your records.</p>}
+    {event.status === 'PUBLISHED' && <div className="event-admission-link"><Link className="button button-primary" to={'/organizer/events/' + event.id + '/check-in'}>Manage Check-In</Link><p>Admission opens {formatEventDate(new Date(Date.parse(event.startAt) - 7200000).toISOString())} and closes {formatEventDate(event.endAt)}. The workspace shows current server availability and history.</p></div>}
     <EventDetails event={event} />
   </>;
 }

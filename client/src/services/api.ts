@@ -3,7 +3,7 @@ import type { HealthResponse } from '@/types/api';
 export class ApiRequestError extends Error {
   constructor(message: string, public readonly status?: number,
     public readonly code = 'REQUEST_FAILED', public readonly requestId?: string,
-    public readonly retryAfterSeconds?: number, public readonly fields: readonly string[] = []) {
+    public readonly retryAfterSeconds?: number, public readonly fields: readonly string[] = [], public readonly checkedInAt?: string) {
     super(message);
     this.name = 'ApiRequestError';
   }
@@ -15,6 +15,22 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 
 function safeMessage(status: number, code: string): string {
   const eventMessages: Record<string, string> = {
+    INVALID_CHECKIN_INPUT: 'Provide the complete signed QR credential. Do not use a ticket reference alone.',
+    INVALID_QR_PAYLOAD: 'This QR credential is invalid. Entry denied.',
+    INVALID_TICKET: 'This ticket is not valid for this event. Entry denied.',
+    TICKET_ALREADY_USED: 'This ticket was already checked in. Entry denied.',
+    TICKET_REVOKED: 'This ticket has been revoked. Entry denied.',
+    RESERVATION_NOT_CONFIRMED: 'This reservation is not confirmed. Entry denied.',
+    PAYMENT_NOT_VERIFIED: 'Successful booking confirmation could not be verified. Entry denied.',
+    CHECKIN_NOT_OPEN: 'Check-in opens two hours before the event starts.',
+    CHECKIN_CLOSED: 'Check-in closed when the event ended.',
+    EVENT_CANCELLED: 'This event is cancelled. Admission is unavailable.',
+    EVENT_NOT_PUBLISHED: 'Publish this event before admitting attendees.',
+    CHECKIN_CONFLICT: 'Admission was not approved. Check history before explicitly retrying.',
+    CHECKIN_CONFIGURATION_UNAVAILABLE: 'Ticket verification is temporarily unavailable. Admission cannot be confirmed.',
+    CHECKIN_STATE_UNAVAILABLE: 'The admission state could not be verified. Do not assume approval.',
+    CHECKIN_HISTORY_UNAVAILABLE: 'Check-in history could not be loaded. Please retry.',
+    CHECKIN_OUTCOME_UNKNOWN: 'The check-in may have completed. Check history or explicitly retry the same credential.',
     TICKET_NOT_FOUND: 'This ticket could not be found.',
     TICKET_NOT_ELIGIBLE: 'Ticket generation requires a confirmed reservation, verified payment and available event.',
     TICKET_CONFIGURATION_UNAVAILABLE: 'Ticket signing is temporarily unavailable. Your confirmed reservation is preserved.',
@@ -66,6 +82,13 @@ function retryAfter(value: string | null): number | undefined {
   return Number.isFinite(seconds) ? Math.max(0, Math.min(86400, seconds)) : undefined;
 }
 
+function statusPreviousAdmission(status: number, code: string, details: unknown): string | undefined {
+  if (status !== 409 || code !== 'TICKET_ALREADY_USED' || !Array.isArray(details)) return undefined;
+  const value: unknown = details.filter(isRecord).find((detail) => detail.field === 'checkedInAt')?.message;
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value) &&
+    Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value ? value : undefined;
+}
+
 interface RequestOptions<T> {
   method?: 'GET' | 'POST' | 'PATCH';
   body?: unknown;
@@ -106,7 +129,8 @@ export async function request<T>(path: string, options: RequestOptions<T>): Prom
       const id = typeof error.requestId === 'string' && /^[a-f\d-]{36}$/i.test(error.requestId) ? error.requestId : undefined;
       const fields = Array.isArray(error.details) ? error.details.filter(isRecord).map((detail) => detail.field)
         .filter((field): field is string => typeof field === 'string' && /^(title|description|venue|startAt|endAt|registrationDeadline|capacity|pricePaise)$/.test(field)) : [];
-      throw new ApiRequestError(safeMessage(response.status, code), response.status, code, id, retryAfter(response.headers.get('retry-after')), [...new Set(fields)]);
+      const previous = statusPreviousAdmission(response.status, code, error.details);
+      throw new ApiRequestError(safeMessage(response.status, code), response.status, code, id, retryAfter(response.headers.get('retry-after')), [...new Set(fields)], previous);
     }
     return options.parse(data);
   } catch (error) {
