@@ -6,6 +6,7 @@ import './styles.css';
 import './auth.css';
 import './dashboard.css';
 import './events.css';
+import './discovery.css';
 import { AuthProvider } from './context/AuthProvider';
 
 createRoot(document.getElementById('root')!).render(

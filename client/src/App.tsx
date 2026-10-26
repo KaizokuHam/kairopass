@@ -14,6 +14,7 @@ import { OrganizerEventsPage } from '@/pages/organizer/OrganizerEventsPage';
 import { CreateEventPage } from '@/pages/organizer/CreateEventPage';
 import { EditEventPage } from '@/pages/organizer/EditEventPage';
 import { OrganizerEventDetailsPage } from '@/pages/organizer/OrganizerEventDetailsPage';
+import { ExploreEventsPage } from '@/pages/ExploreEventsPage';
 
 export function App() {
   return (
@@ -21,6 +22,7 @@ export function App() {
       <Route element={<AppLayout />}>
         <Route index element={<HomePage />} />
         <Route path="vision" element={<VisionPage />} />
+        <Route path="events" element={<ExploreEventsPage />} />
         <Route element={<PublicOnlyRoute />}><Route path="login" element={<LoginPage />} /><Route path="register" element={<RegisterPage />} /></Route>
         <Route element={<ProtectedRoute />}>
           <Route element={<RoleGuard role="ATTENDEE" />}><Route path="attendee/dashboard" element={<DashboardPage role="ATTENDEE" />} /></Route>

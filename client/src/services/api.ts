@@ -16,6 +16,7 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 function safeMessage(status: number, code: string): string {
   const eventMessages: Record<string, string> = {
     EVENT_NOT_FOUND: 'This event could not be found.',
+    INVALID_DISCOVERY_QUERY: 'Please review the event search and date filters.',
     INVALID_EVENT_INPUT: 'Please review the event details and highlighted fields.',
     INVALID_EVENT_STATE: 'The event’s current status does not allow this action. Reload the latest event.',
     EVENT_NOT_PUBLISHABLE: 'Check that the event details are complete and its start and registration deadline are still in the future.',
