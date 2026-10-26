@@ -351,6 +351,7 @@ Password/secret rotation and all-session revocation UI are also outside Tasks
 | Route | Access and behavior |
 | --- | --- |
 | `/`, `/vision` | Public, including when auth is unavailable |
+| `/events`, `/events/:id` | Public discovery; independent of session/role verification |
 | `/login`, `/register` | Public-only forms; verified users redirect to their own dashboard |
 | `/attendee/dashboard` | Verified ATTENDEE only |
 | `/organizer/dashboard` | Verified ORGANIZER only |
@@ -404,10 +405,10 @@ unmount. No JWT, password, or session state is stored in localStorage/sessionSto
 frontend code never reads or writes authentication cookies.
 
 Account dashboards show actual name, email, role, and membership month. Attendee
-discovery (07), reservations (08), tickets (10), and organizer management (06),
-registrations (08), check-in (11), analytics (12) are labeled upcoming, without
-fake statistics or functional-looking dead controls. Shared layouts and the
-role-configured dashboard can be extended in their assigned tasks.
+discovery (07) and organizer management (06) now have functional navigation.
+Reservations (08), tickets (10), organizer registrations (08), check-in (11), and
+analytics (12) remain labeled upcoming, without fake statistics or functional-looking
+dead controls. Public discovery requests do not reclassify session failures as logout.
 
 ## Frontend development and verification
 

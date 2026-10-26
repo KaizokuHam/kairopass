@@ -18,8 +18,8 @@ Submission deadline: **October 27, 2026, 11:59 PM IST**.
 | 04 | Authentication Frontend, Protected Routing & User Experience | Completed — implementation and local acceptance verified |
 | 05 | Event Management Backend | Completed — implementation and local acceptance verified |
 | 06 | Event Management Frontend | Completed — implementation and local acceptance verified |
-| 07 | Event Discovery | Next — not implemented |
-| 08 | Reservation Engine | Upcoming |
+| 07 | Event Discovery | Completed — implementation and local acceptance verified |
+| 08 | Reservation Engine | Next — not implemented |
 | 09 | Simulated Payment Gateway | Upcoming |
 | 10 | QR Ticketing | Upcoming |
 | 11 | Ticket Check-In | Upcoming |
@@ -273,3 +273,59 @@ backend has no client revision/ETag contract for long-lived old forms; 409
 conflicts require explicit reload. Persistent use requires configured owned
 replica-set/Atlas storage, JWT credentials, and correct origins/HTTPS. Task 07
 can begin when separately authorized; it is not implemented by this task.
+
+## Task 07 acceptance record
+
+Verified on **October 26, 2026 (IST)** with Node.js 24.14.0 and npm 11.9.0:
+
+| Check | Observed result |
+| --- | --- |
+| Prerequisites/repository | Tasks 04–06 pushed, clean main at 896ab28; GitHub identity/remote checked, safely fetched/synchronized; baseline 395 tests plus lint/types/builds passed |
+| Public API | GET /api/events and /api/events/:id work without authentication, including unavailable JWT configuration with a ready MongoDB connection |
+| Visibility | Both services enforce PUBLISHED and startAt > now; draft/cancelled/past/missing/malformed-ID details share safe 404; private organizer history retained |
+| Queries | Case-insensitive escaped title/venue substrings, venue/price/UTC date filters, combined predicates, four stable sort orders, server pagination/counts |
+| Input safety | Strict query schema, bounded lengths/page/limit, explicit date offsets/calendar/range validation, duplicate/unknown/operator rejection |
+| Public data boundary | Dedicated twelve-field projection/mapper, no organizer/account join, no internal/private/auth/reservation/payment fields |
+| Database performance | Additive schedule/price indexes verified in real MongoDB; existing indexes retained; page/count aggregation and 2-second execution budgets |
+| Frontend marketplace | Actual API cards, exact paise price/free display, remaining capacity, date-based artwork, 300 ms server-backed search, URL state, sort/filter/pagination |
+| State/error handling | Obsolete reads aborted/ignored, key changes immediately hide prior data; loading/empty/search/filter/not-found/service errors distinct and retryable where appropriate |
+| Public details/availability | Actual description/venue/start/end/deadline/price/capacity; deterministic unavailable/closed/sold-out/open precedence; exact clock-boundary updates |
+| Scope/authentication | Public pages work for guest/either role/unresolved/unavailable auth; existing private role/ownership/Origin/session protections preserved; reservation CTA disabled in every state |
+| Navigation | Public navigation/home CTA/attendee dashboard reach /events; detail links carry search state and return to the same filters; organizer workspace links preserved |
+| New backend tests | 52 HTTP/real MongoDB integration cases plus 2 disconnected-route checks; all 259 prior backend regressions remain active (313 total / 10 files) |
+| New frontend tests | 63 discovery HTTP/query/page/detail/clock/lifecycle cases; all prior authentication/organizer regressions retained (199 total / 14 files) |
+| Clean installation | npm ci passed: 439 packages installed, 442 audited, zero reported vulnerabilities |
+| Complete clean-install gate | npm run check passed: zero-warning lint, strict TypeScript in both workspaces, 512 tests / 24 files, both production builds |
+| Real browser lifecycle | Registered disposable organizer; created paid Design After Hours draft; confirmed no public visibility; published through confirmation; public listing/search/filter/details/refresh matched; cancelled through confirmation; discovery removed it and private history retained it |
+| Real browser queries/data | Created/published Community Product Lab (free, capacity 25) and Cloud Engineering Workshop (₹299.50, capacity 60); verified price/venue/local-date filters, price sorting, and actual page 1/2 navigation |
+| Real browser public roles | Signed out and browsed anonymously; registered attendee and followed dashboard Explore Events action; no fictitious bookings or counts |
+| Responsive/console | Default desktop, 375px mobile, and 768px tablet inspected; no page horizontal overflow; mobile collapsible filters and public free-event details worked; captured warn/error logs were empty |
+| Compiled production smoke | Real draft/publish/cancel visibility, explicit public DTO, search/filter/pagination, frozen economics, retained history, logout revocation, safe logs, SPA routes and actual assets passed |
+| Compiled failure modes | Invalid JWT: public discovery 200/private management 503; unavailable DB: discovery/private management 503; health/frontend/assets remained 200 in both modes |
+| Artifact/scope hygiene | No new dependencies, secrets, application environment, generated output, preview helpers, screenshots, production fixtures, or later workflow endpoints tracked |
+
+All database checks use owned unique MongoDB 8.2.6 replica sets, ephemeral signing
+keys, and disposable `.test` accounts. They do not clean an application/Atlas
+database. Browser tab/viewport overrides were cleaned up; owned preview and smoke
+processes were stopped. Screenshots and execution logs remain in ignored artifacts.
+The current public marketplace screenshot shows actual persisted browser-created
+events, not a hardcoded component fixture.
+
+Five coherent conventional commits cover public APIs, query capabilities,
+marketplace, public details/navigation, and documentation. Existing CI automatically
+discovers the new suites through npm test. The final push, remote HEAD, clean tree,
+and exact-revision GitHub Actions conclusion are checked at delivery; see
+[GitHub Actions](https://github.com/KaizokuHam/kairopass/actions/workflows/ci.yml).
+
+Known limits: public history is deliberately excluded; substring search and
+skip/limit suit the current MVP rather than unlimited datasets; inventory/status
+are loaded snapshots and clock labels use the device clock. Persistent application
+use still requires owned replica-set/Atlas storage and configured JWT/Origins for
+account management. No reservation/payment/ticket/QR workflow, artwork upload,
+recommendations, background inventory push, or external search system is implemented.
+There are no unresolved Task 07 implementation or manual-smoke blockers.
+
+Ready for **Task 08/14 — Reservation Engine, Atomic Inventory Management & Expiring
+Ticket Holds** when separately authorized. Every actual allocation must revalidate
+event status, times, deadline, and inventory transactionally; discovery labels are
+never booking authority. Task 08 has not been started.

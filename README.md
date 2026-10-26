@@ -22,8 +22,8 @@ guests, and understand attendance.
 5. Organizer analytics and reporting.
 
 Payments will be simulated. No real card processing or real payment collection
-is planned. Public discovery, booking, payments, and ticketing remain upcoming
-after Task 06.
+is planned. Public discovery is available; booking, payments, and ticketing remain
+upcoming after Task 07.
 
 ## Stack and architecture
 
@@ -77,6 +77,7 @@ The `/api` proxy continues to target `http://127.0.0.1:4000`.
 | `npm run test:db` | Start an owned disposable MongoDB replica set and run database tests |
 | `npm run test:auth` | Run authentication unit and real HTTP integration tests |
 | `npm run test:events` | Run event ownership, validation, lifecycle, and concurrency integration tests |
+| `npm run test:discovery` | Run public visibility, search, filtering, and pagination integration tests |
 | `npm run test:watch` | Run backend tests in watch mode |
 | `npm run build` | Compile client and server |
 | `npm run check` | Run lint, type checks, tests, and builds |
@@ -141,6 +142,7 @@ MongoDB deployment; the liveness endpoint remains independent.
 │   ├── src/
 │   │   ├── modules/auth/       # Routes, controllers, services, validation, JWT/password utilities
 │   │   ├── modules/events/     # Private organizer event management, lifecycle, and DTOs
+│   │   ├── modules/discovery/  # Public upcoming-event search, filtering, pagination, and safe DTOs
 │   │   ├── models/             # Five business models plus AuthSession and verified indexes
 │   │   ├── types/              # Public response DTOs
 │   │   ├── middleware/         # Logging, errors, API 404
@@ -208,8 +210,9 @@ read application `MONGODB_URI` for data cleanup.
 | Route | Behavior |
 | --- | --- |
 | `/`, `/vision` | Public overview and roadmap |
+| `/events`, `/events/:id` | Public upcoming marketplace and event details; no sign-in required |
 | `/login`, `/register` | Accessible forms; authenticated users return to their own dashboard |
-| `/attendee/dashboard` | Attendee account overview; future discovery/reservations/tickets labeled upcoming |
+| `/attendee/dashboard` | Attendee account overview and Explore Events navigation; reservations/tickets upcoming |
 | `/organizer/dashboard` | Account overview, live recent events, functional event-management navigation |
 
 Registration signs the user in immediately using the real API response. Refresh
@@ -268,8 +271,22 @@ strict TypeScript, and both production builds. Real-browser verification covers
 paid/free creation, editing, publication/cancellation, refresh persistence,
 filters/pagination, role/ownership protection, and desktop/tablet/mobile layouts.
 
-Public discovery, reservation orchestration, simulated checkout, QR generation,
-check-in, and analytics remain upcoming. Task 07 is Public Event Discovery.
+Task 07 adds public `/api/events` list/detail APIs and `/events` marketplace/detail
+pages. Published upcoming events are searchable by title/venue with price/date
+filters, deterministic sorting, bounded server pagination, and shareable URLs.
+Draft/cancelled/past events stay hidden; registration-closed and sold-out upcoming
+events remain visible with accurate labels. See [discovery contracts](docs/discovery.md).
+The clean-install gate passes **512 tests / 24 files**: **199 frontend** and
+**313 backend**, including **63 new frontend** and **54 new backend** tests,
+plus lint, strict types, and both builds. Real browser checks verify the organizer
+publication-to-discovery lifecycle, cancellation exclusion/history, anonymous and
+attendee access, queries/pagination, and responsive layouts. Compiled-server checks
+also verify public access without JWT configuration and safe database failures.
+
+Reservation orchestration, simulated checkout, QR generation, check-in, and
+analytics remain upcoming. Task 08 is Reservation Engine, Atomic Inventory
+Management & Expiring Ticket Holds. Reservations remain visibly unavailable;
+displayed capacity never guarantees allocation.
 [AGENTS.md](AGENTS.md) records the permanent stack and
 engineering rules for future sessions.
 

@@ -2,8 +2,9 @@
 
 Task 05 implements a private organizer API. Task 06 connects the organizer
 dashboard, event forms, list/detail pages, and confirmed lifecycle actions.
-Public discovery (07), reservation allocation/expiration (08), payments, and
-ticketing remain future work. There is no public event browsing or hard-delete endpoint.
+Task 07 adds separate [public discovery](discovery.md) endpoints and pages.
+Reservation allocation/expiration (08), payments, and ticketing remain future work.
+There is no hard-delete endpoint. Public visibility never changes private ownership.
 
 ## Access and model
 
@@ -16,9 +17,10 @@ includes both event ID and organizer ID. Missing and unowned events both return
 receive 401. Invalid signing configuration or unavailable MongoDB fails with 503.
 All organizer event responses use `Cache-Control: no-store`.
 
-The existing Event model is retained: organizer reference, title, description,
+The existing Event fields are retained: organizer reference, title, description,
 venue, start/end/deadline, capacity, integer price in paise, status, reserved
-count, and timestamps. Existing event indexes are unchanged. The additive
+count, and timestamps. Existing event indexes are preserved; Task 07 adds public
+schedule/price indexes documented in discovery.md. The additive
 `reservation_event_status` index (`eventId: 1, status: 1`) supports cancellation's
 defensive active-booking lookup. Startup creates/verifies it without dropping
 existing indexes or introducing reservation TTL deletion.
@@ -317,7 +319,7 @@ offer a first-page action. Limits remain within the backend's 1–50 / page 10,0
 
 ### Confirmed lifecycle actions and recovery
 
-Draft publication opens a modal explaining future discovery eligibility and
+Draft publication opens a modal explaining upcoming-event public visibility and
 the economic/schedule fields that become locked. Cancellation opens a separate
 modal explaining permanence, record retention, active-reservation restrictions,
 and the absence of refunds. Both require explicit confirmation. The dialogs

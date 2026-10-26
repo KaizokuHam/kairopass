@@ -203,6 +203,8 @@ All collections also have MongoDB's `_id` index.
 | User / `user_email_unique` | email: 1 | Unique normalized email |
 | Event / `event_organizer` | organizerId: 1 | Organizer event management |
 | Event / `event_discovery` | status: 1, startAt: 1 | Published-event date queries |
+| Event / `event_public_schedule` | status: 1, startAt: 1, _id: 1 | Stable public schedule ordering and reverse scans (Task 07) |
+| Event / `event_public_price` | status: 1, pricePaise: 1, startAt: 1, _id: 1 | Stable public price ordering and reverse scans (Task 07) |
 | Reservation / `reservation_active_user_event_unique` | userId: 1, eventId: 1 | Unique only where status is in HELD/CONFIRMED |
 | Reservation / `reservation_expiration_scan` | status: 1, expiresAt: 1 | Find elapsed holds for explicit cleanup; **not TTL** |
 | Reservation / `reservation_event_status` | eventId: 1, status: 1 | Task 05 cancellation checks for active bookings despite an inconsistent counter |

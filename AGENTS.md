@@ -126,12 +126,40 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - Do not expose raw server errors, cookies, JWTs, or private model metadata;
   no event/auth browser-storage persistence. Keep frontend HTTP-boundary tests.
 
+## Public discovery contract (Task 07)
+
+- Read `docs/discovery.md` before changing public event queries or implementing booking.
+- Keep GET `/api/events` and `/api/events/:id` public and database-readiness guarded,
+  independent of JWT configuration. Do not weaken private organizer guards.
+- Enforce PUBLISHED and startAt > now in both services. Draft/cancelled/past,
+  missing, and malformed-ID public details share 404; private history stays available.
+- Upcoming closed/sold-out events remain visible. Availability labels are snapshots,
+  never reservation authority. Task 08 must revalidate inside its inventory transaction.
+- Preserve dedicated public projection/mapper; never expose organizer/account data,
+  model internals, credentials, or reservation/payment records in discovery.
+- Strictly validate query enums, ISO offset boundaries, lengths, and bounded page/limit.
+  Escape literal title/venue search, reject unknown/repeated/operator parameters.
+- Use deterministic date/price/ObjectId ordering, MongoDB page/count aggregation,
+  2-second query budgets, and additive verified schedule/price indexes.
+- Reuse public typed API/hooks, shared price/date utilities, URL-applied filters,
+  300 ms search debounce, stale-read abort/generation handling, and safe feedback.
+- Public pages must work with guest/either-role/unresolved/unavailable auth. Keep
+  private organizer request scoping and role-aware post-login destinations unchanged.
+- Name the browser timezone, convert actual local date boundaries to UTC, and
+  preserve inclusive exact-instant from/through semantics. No silent day expansion.
+- Availability precedence: unavailable start/status, closed deadline, sold out,
+  otherwise open. Update known time boundaries; re-read server data on refresh.
+- Reservation CTA stays disabled until actual Task 08 allocation exists; no fake
+  booking, success, image artwork, reviews, recommendations, or popularity counts.
+- Preserve real MongoDB visibility/query tests and frontend HTTP-boundary tests.
+
 ## Verification and Git
 
 - Use `npm ci` and `npm run check` (lint, types, all tests, both builds).
 - `npm run test:unit` needs no MongoDB process; `npm run test:db` owns its replica set.
 - `npm run test:auth` runs authentication unit and real HTTP/replica-set tests with ephemeral keys.
 - `npm run test:events` runs event integration suites; `test:db` also includes them.
+- `npm run test:discovery` runs public visibility/query integrations; `test:db` includes them.
 - `npm run test:web` runs frontend tests; `npm test` and CI include both workspaces.
 - `npm run test:watch -w client` watches frontend tests; root `test:watch` watches backend tests.
 - Keep changes small and coherent; use conventional commits and the configured authorized Git identity.
@@ -146,7 +174,7 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - 04 — Authentication Frontend (implemented; see verification record)
 - 05 — Event Management Backend (implemented; see verification record)
 - 06 — Event Management Frontend (implemented; see verification record)
-- 07 — Event Discovery
+- 07 — Event Discovery (implemented; see verification record)
 - 08 — Reservation Engine
 - 09 — Simulated Payment Gateway
 - 10 — QR Ticketing
@@ -156,5 +184,5 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - 14 — Production Release & Documentation
 
 Future tasks must continue using MongoDB/Mongoose. Implement only the task the
-user authorizes. Task 07 is Public Event Discovery; booking/payment/ticket
-workflows remain later tasks and require their own authorization.
+user authorizes. Task 07 public discovery is implemented. Task 08 is the next
+reservation milestone; booking/payment/ticket workflows require their own authorization.

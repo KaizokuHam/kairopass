@@ -34,13 +34,14 @@ Production:  browser -> Express -> /api routes -> module services -> Mongoose ->
 
 The implemented auth module owns routes, controllers, services, Zod validation,
 token/password utilities, and typed authenticated request context. The events
-module owns private organizer event management. Future modules are reservations,
+module owns private organizer event management; discovery owns public upcoming
+listing/detail reads and their strict query/public-DTO boundary. Future modules are reservations,
 payments, tickets/check-in, and analytics. Each owns its router, Zod request validation, service rules,
 and persistence operations. Routes should translate HTTP; services should enforce
 business invariants. Modules will call explicit service contracts instead of
 reaching into each other's controllers. Task 03 adds only the four `/api/auth`
-endpoints; Task 05 adds `/api/organizer/events`. Public discovery, booking,
-payment, and ticket controllers remain later work.
+endpoints; Task 05 adds `/api/organizer/events`; Task 07 adds `/api/events`.
+Booking, payment, and ticket controllers remain later work.
 
 ## Deployment and API
 
@@ -55,7 +56,7 @@ Production requires a prior frontend build. The health endpoint is liveness only
 not database readiness, and must work without a database. `/api/ready` returns 503
 until a transactional MongoDB connection and its required indexes are verified,
 and a bounded ping succeeds. Startup failure is reported explicitly while
-liveness stays available. Auth, events, and future database-backed routers use `requireDatabase`.
+liveness stays available. Auth, events, discovery, and future database-backed routers use `requireDatabase`.
 Readiness retains its database-only meaning; auth configuration is checked separately.
 
 The error contract is `{ success: false, error: { code, message, requestId } }`.
@@ -110,11 +111,11 @@ Production still serves client/API on one origin with Secure HTTP-only cookies.
 
 `modules/events` separates routing, thin controllers, Zod validation, service
 rules, explicit DTO types, and mapping. Its six endpoints live under the private
-`/api/organizer/events` namespace; `/api/events` remains reserved for Task 07.
+`/api/organizer/events` namespace; Task 07's separate discovery router owns `/api/events`.
 All routes reuse readiness, authentication, persisted ORGANIZER authorization,
 and mutation Origin checks. Event lookups/writes include ID and organizer ID;
-missing and unowned events share a 404 response. The existing Event schema and
-event indexes remain unchanged.
+missing and unowned events share a 404 response. Existing Event fields/indexes
+are preserved; Task 07 adds verified schedule/price indexes for public reads.
 
 Strict bodies reject identity, status, inventory, timestamps, operators, and
 unknown fields. Draft edits validate complete merged state and document hooks.
@@ -161,9 +162,28 @@ outcomes prompt review before retry. Background content is inert during modals,
 keyboard focus is trapped/restored, and pending controls cannot repeat actions.
 
 The organizer dashboard fetches only three recent events and the API total.
-Other metrics are omitted. Public event discovery and booking remain later tasks.
+Other metrics are omitted. Public discovery is provided by Task 07; booking remains later work.
 No backend/auth/database changes are needed for Task 06. See
 [event frontend contracts and limitations](events.md#organizer-frontend-task-06).
+
+## Public discovery (Task 07)
+
+The public discovery service independently enforces PUBLISHED with a strictly future
+start for both list and detail. Private, cancelled, missing, malformed-ID, and past
+details share 404. Upcoming closed/sold-out events stay visible. It uses strict Zod
+query schemas, escaped title/venue substrings, price/ISO date filters, stable
+date/price/ObjectId sorting, and one bounded page/count aggregation with a 2-second
+query budget. Dedicated projection and mapping return twelve public fields, without
+organizer/account joins. Additive schedule and price indexes retain existing indexes.
+
+Public React routes sit outside session/role gates, reuse typed HTTP requests and
+shared price/date utilities, and keep applied query state in the URL. Search is
+debounced; resource/attempt keys, abort controllers, and generations prevent stale
+results. List/detail availability uses actual inventory and updates known clock
+boundaries, while every reservation control remains disabled for Task 08. Navigation
+and attendee discovery actions use real routes. Public browsing remains independent
+of JWT configuration; private management retains all existing guards. See
+[discovery architecture, contracts, and limits](discovery.md).
 
 ## Persistence and data integrity
 
