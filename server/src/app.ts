@@ -10,6 +10,7 @@ import { apiNotFound, errorHandler } from './middleware/error-handler.js';
 import { requestLogger } from './middleware/request-logger.js';
 import { parseAuthEnvironment, type AuthConfig } from './config/auth.js';
 import { createAuthRouter } from './modules/auth/auth.routes.js';
+import { createEventsRouter } from './modules/events/events.routes.js';
 
 interface AppOptions {
   mode?: 'development' | 'test' | 'production';
@@ -58,6 +59,7 @@ export function createApp(options: AppOptions = {}) {
     authConfig = null; // Fail closed for auth while preserving independent liveness.
   }
   app.use('/api/auth', createAuthRouter(authConfig));
+  app.use('/api/organizer/events', createEventsRouter(authConfig));
   // Match the /api path boundary, including /api itself, before any SPA routes.
   app.use('/api', apiNotFound);
 
