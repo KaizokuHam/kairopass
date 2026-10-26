@@ -58,12 +58,12 @@ describe('protected routes and role-aware navigation', () => {
     expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
   });
 
-  it('shows actual account data and clearly unavailable future features', async () => {
+  it('shows actual account data, functional discovery, and clearly unavailable later features', async () => {
     boundary(() => userResponse()); show('/attendee/dashboard');
     expect(await screen.findByText(attendee.email)).toBeInTheDocument();
-    expect(screen.getByText('Explore Events').closest('li')).toHaveAttribute('aria-disabled', 'true');
     expect(screen.getByText('My Reservations').closest('li')).toHaveAttribute('aria-disabled', 'true');
-    expect(screen.queryByRole('link', { name: /Explore Events/ })).not.toBeInTheDocument();
+    expect(screen.getByText('My Tickets').closest('li')).toHaveAttribute('aria-disabled', 'true');
+    for (const link of screen.getAllByRole('link', { name: /Explore Events/ })) expect(link).toHaveAttribute('href', '/events');
   });
 
   it('returns to the public page after confirmed logout and blocks a subsequent protected visit', async () => {

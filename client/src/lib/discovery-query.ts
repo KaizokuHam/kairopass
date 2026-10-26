@@ -8,7 +8,8 @@ function isoBoundary(value: string): string {
   // Date.parse rolls over impossible days; compare the written local calendar too.
   const year = Number(value.slice(0, 4)), month = Number(value.slice(5, 7)), day = Number(value.slice(8, 10));
   const calendar = new Date(Date.UTC(year, month, 0));
-  return Number.isFinite(time) && year >= 100 && month >= 1 && month <= 12 && day >= 1 && day <= calendar.getUTCDate() ? new Date(time).toISOString() : '';
+  return Number.isFinite(time) && year >= 100 && month >= 1 && month <= 12 && day >= 1 && day <= calendar.getUTCDate()
+    && Number(value.slice(11, 13)) <= 23 && Number(value.slice(14, 16)) <= 59 ? new Date(time).toISOString() : '';
 }
 export function parseDiscoverySearch(params: URLSearchParams): { query: DiscoveryQuery; recovered: boolean } {
   const query = { ...discoveryDefaults }; let recovered = false;

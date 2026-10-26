@@ -17,7 +17,7 @@ export function HomePage() {
           <h1 id="hero-heading">Your next<br />chapter,<br /><span>in person.</span><span className="heading-spark" aria-hidden="true">✳</span></h1>
           <p className="hero-description">The best moments happen when you show up.<br className="desktop-break" /> We’re building a better way to get you there.</p>
           <div className="hero-actions">
-            <Link className="button button-primary" to="/register">Create your account <ArrowUpRight size={16} /></Link>
+            <Link className="button button-primary" to="/events">Explore Events <ArrowUpRight size={16} /></Link>
             <Link className="text-link" to="/vision">Explore the vision <ArrowUpRight size={16} /></Link>
           </div>
           <div className="build-note"><span className="build-note-dot" /><span>A work in progress. A world of possibility.</span></div>
@@ -37,7 +37,7 @@ export function HomePage() {
             </article>
           ))}
         </div>
-        <div className="foundation-note"><span>We’re laying the groundwork.</span><p>Event discovery, booking, and ticketing are coming in future releases.</p><Link to="/vision" aria-label="Read about the KairoPass vision"><ArrowRight size={18} /></Link></div>
+        <div className="foundation-note"><span>Your next experience is out there.</span><p>Explore published events now. Reservations and ticketing are on the way.</p><Link to="/events" aria-label="Discover upcoming events"><ArrowRight size={18} /></Link></div>
       </section>
     </>
   );

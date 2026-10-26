@@ -33,7 +33,7 @@ export function EventActions({ event, changed, reload }: { event: OrganizerEvent
     {event.status === 'DRAFT' && expired && <p className="event-lock-note">Update the start and registration deadline before publishing.</p>}
     {event.reservedCount > 0 && <p className="event-lock-note">Active reserved inventory prevents cancellation.</p>}
     {action && <ConfirmActionDialog title={action === 'publish' ? 'Publish this event?' : 'Cancel this event?'} confirmLabel={action === 'publish' ? 'Confirm publication' : 'Confirm cancellation'} pending={pending} blocked={failure?.status === 409} danger={action === 'cancel'} close={() => { if (!pending) setAction(null); }} confirm={() => void confirm()}>
-      {action === 'publish' ? <><p>Publication makes this event eligible for future public discovery.</p><p>Ticket price, capacity, schedule, and registration deadline become locked. You can still edit the title, description, and venue.</p></>
+      {action === 'publish' ? <><p>Publication makes this event visible in public discovery while its start is in the future.</p><p>Ticket price, capacity, schedule, and registration deadline become locked. You can still edit the title, description, and venue.</p></>
         : <><p>Cancellation is permanent. This event will become read-only and remain in your records.</p><p>Events with active HELD or CONFIRMED reservations cannot be cancelled through this action. No refunds are performed here.</p></>}
       {failure && <EventError error={failure} compact mutation retry={() => { setAction(null); reload(); }} />}
     </ConfirmActionDialog>}
