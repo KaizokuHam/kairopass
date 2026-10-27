@@ -1,5 +1,9 @@
 # KairoPass mid-project engineering audit — Task 07.5
 
+**Historical checkpoint:** the Task 13 [release-readiness audit](release-readiness.md)
+supersedes this midpoint's current-readiness assessment. The original observations
+and verification below remain intact; Tasks 08–12 have since been implemented.
+
 Audit date: **October 26, 2026 (Asia/Calcutta)**. Repository:
 [KaizokuHam/kairopass](https://github.com/KaizokuHam/kairopass), branch `main`.
 Baseline: `b6700a1b7e901c48f89a6ec5da6cf40c1ca2c7ea`.

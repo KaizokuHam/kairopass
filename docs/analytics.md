@@ -1,5 +1,9 @@
 # Organizer analytics — Task 12
 
+Task 13's [release audit](release-readiness.md) verifies the connected browser
+journey and independent unchanged-business-record snapshots around reporting.
+Metric definitions and aggregation semantics below are unchanged by that audit.
+
 Analytics is private, read-only reporting over persisted Event, Reservation,
 PaymentAttempt and Ticket records. No money is collected and every financial
 value is labelled **Simulated Gross Revenue**.

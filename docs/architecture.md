@@ -283,6 +283,16 @@ Authentication requires a strong environment-provided JWT secret and production
 origin settings. Connection/auth failures never log secrets or raw credential-
 bearing driver errors. Secrets must never enter client bundles.
 
+Task 13 access logging uses source-defined mount/route templates, including
+parameter placeholders, and a fixed unmatched label. Raw URI path segments can
+contain accidentally pasted credentials and must never be restored to logs.
+Production browser responses share a strict same-origin CSP with data/blob QR
+images and local blob media, explicit frame denial, no-referrer, nosniff and
+camera-self/microphone-off/geolocation-off permissions. Production-only HSTS does
+not assume subdomain or preload policy. Development keeps Vite HMR working.
+Actual HTTPS/proxy enforcement remains a hosting acceptance check. See
+[release readiness](release-readiness.md) for evidence, scope and remaining checks.
+
 ## Quality gates
 
 Strict TypeScript, linting, Vitest/Supertest, and a production build are the local

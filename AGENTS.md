@@ -343,6 +343,27 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - Verify before publishing. Push successful completed work to GitHub and verify the remote head/CI.
 - Report actual commit hashes, observed test results, and remaining blockers honestly.
 
+## Release hardening contract (Task 13)
+
+- Read `docs/release-readiness.md` before release/deployment work. Keep its tested
+  scope, issue register and unverified hosting/device limits explicit.
+- Allocation refreshes application time after the active-hold query and requires
+  startAt and registrationDeadline > MongoDB $$NOW in the conditional Event write.
+  Preserve these guards with the capacity predicate and transactional insert.
+- Access logs use only source-defined route/mount templates or a fixed unmatched
+  label. Never log raw path/baseUrl/originalUrl, queries, bodies, cookies or QR values.
+- Preserve same-origin production CSP, frame denial, no-referrer, nosniff and
+  camera-self permissions. Keep development HMR and local QR/camera resources
+  functional. HTTPS/proxy and HSTS subdomain policy need actual hosting evidence.
+- Keep independent test workers bounded (one jsdom, one backend) with file
+  isolation and existing assertion/startup deadlines. Within-suite 20-request
+  races remain parallel. Never count fixture-startup skips as passing integration.
+- `npm run test:release` checks the connected lifecycle with an independent
+  consistent-snapshot inventory oracle, reconnect stability and read-only reports.
+  Full tests/CI and `test:db` include it; semantic axe checks are in frontend tests.
+- Browser and database evidence stays disposable. Do not commit QR screenshots,
+  downloaded tickets, credentials, test binaries or generated artifacts.
+
 ## Remaining roadmap
 
 - 03 — Authentication Backend (implemented; see verification record)
@@ -355,11 +376,12 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - 10 — QR Ticketing (implemented; see verification record)
 - 11 — Ticket Check-In (implemented; see verification record)
 - 12 — Organizer Analytics (implemented; see verification record)
-- 13 — Integration Testing & Hardening
+- 13 — Integration Testing & Hardening (implemented; see release-readiness report)
 - 14 — Production Release & Documentation
 
 Future tasks must continue using MongoDB/Mongoose. Implement only the task the
 user authorizes. Tasks 07 discovery, 08 reservations and 09 simulated payments are
 implemented, as are Task 10 QR ticketing, Task 11 single-use admission and Task 12
-organizer analytics. Task 13 integration/hardening and Task 14 deployment require
-separate authorization; do not start them as part of Task 12.
+organizer analytics. Task 13 integration/hardening is implemented and verified.
+Task 14 deployment still requires separate authorization; do not start it as
+part of the audit or infer authorization from its checklist.

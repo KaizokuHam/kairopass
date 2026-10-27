@@ -461,6 +461,11 @@ deployment; a standalone instance is insufficient. See
 
 ## Tests and safety
 
+Task 13's [release acceptance](release-readiness.md) connects the implemented
+lifecycle using a separately queried, consistent-snapshot inventory oracle after
+each transition. It also verifies unchanged business records around reporting.
+No live counter repair, schema migration or new index is introduced by that audit.
+
 ```sh
 npm run test:unit  # HTTP, environment, disconnected guard; no MongoDB process
 npm run test:db    # Real model/index/transaction tests in an owned replica set

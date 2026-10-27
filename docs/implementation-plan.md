@@ -25,7 +25,7 @@ Submission deadline: **October 27, 2026, 11:59 PM IST**.
 | 10 | QR Ticketing | Completed — implementation and local acceptance verified |
 | 11 | Ticket Check-In | Completed — implementation and local acceptance verified |
 | 12 | Organizer Analytics | Completed — implementation and local acceptance verified |
-| 13 | Integration Testing & Hardening | Upcoming |
+| 13 | Integration Testing & Hardening | Completed — implementation and local acceptance verified; see release-readiness.md |
 | 14 | Production Release & Documentation | Upcoming |
 
 ## Task 01 acceptance record
@@ -630,3 +630,43 @@ real financial reporting is included.
 Task 12 is complete and ready for **Task 13/14 — End-to-End Integration Testing,
 Security Hardening, Accessibility & Final Product Polish**, when separately
 authorized. Tasks 13 and 14 remain unimplemented in this delivery.
+
+## Task 13 acceptance record
+
+Verified on **October 27, 2026 (IST)**. Starting main was
+`5ffc39b10fd4b666c3ed4086934e7575edbab6a8`; audited implementation is
+`65697fb75946ddab6df448127156740d55c1b85a`. The prior Task 12 record above is historical.
+
+- Fixed a reproduced P1 late-allocation defect with fresh post-query application
+  time and start/deadline MongoDB `$$NOW` write predicates. Three previously
+  failing real-MongoDB cases now deny allocation without changing inventory.
+- Removed raw access-log URI paths, added production browser defenses, corrected
+  320 px scanner overflow and stale product copy. Added targeted privacy/header
+  regressions, a connected lifecycle snapshot oracle and semantic axe checks.
+- Clean install: 477 packages audited, no reported vulnerabilities. Complete gate:
+  **1,062 passing / 42 files** (394 frontend, 668 backend), zero failures/skips,
+  lint/type checks and both production builds. All twelve focused scripts passed.
+- Real browser: register/login/refresh/logout/protected access; organizer create/
+  edit/publish/discovery; paid failure/retry and free confirmation; stable QR and
+  actual PNG export; manual admission/replay denial; USED wallet and exact analytics.
+  Key screens fit 1440/1024/768/390/320 px after the scanner correction.
+- Real exported PNG and 320 px QR capture decode to the owned credential. Twelve
+  screens have no detected semantic axe violations; selected contrast/keyboard/
+  focus/touch checks complement them, without a universal WCAG/device claim.
+- Compiled production: enabled and five configuration-failure modes, real process
+  restart persistence/revocation, strict headers, API/static delivery and graceful
+  shutdown/log hygiene passed. Built public browser views work with enforced CSP.
+- Quiet local report fixture (100 events / 2,000 expired reservations) measured
+  **297 / 275 / 270 ms**; no hosted or payment-heavy capacity claim is made.
+- A saturated host caused earlier fixture/time assertions to fail. Those results
+  were rejected; bounded isolated workers and an available host completed the
+  unchanged deadlines and within-suite races. No assertions or suites were skipped.
+- Source/history/bundle hygiene found only two reviewed synthetic URI fixtures and
+  no configured secret values. Optional read-only Atlas connection failed with
+  zero writes; actual hosting connectivity remains unverified.
+
+The [release-readiness report](release-readiness.md) records exact rubric weights,
+workflow/security/integrity/race evidence, issue severities, limitations and the
+Task 14 checklist. Verdict: **READY WITH NONBLOCKING RISKS**. Task 14 deployment
+has not started; it requires separate authorization. Generated proof remains ignored,
+and owned browser tabs, replica sets, servers and workers were released.

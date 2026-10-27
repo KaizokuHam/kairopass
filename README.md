@@ -8,9 +8,9 @@ and Node.js, with Mongoose as the only database layer.
 ## Problem and users
 
 Event discovery, booking records, payment state, and entrance verification often
-live in disconnected tools. KairoPass will bring the complete journey into one
-application for attendees and organizers. Attendees will discover events and
-manage their tickets; organizers will publish events, manage capacity, check in
+live in disconnected tools. KairoPass brings the complete journey into one
+application for attendees and organizers. Attendees discover events and
+manage their tickets; organizers publish events, manage capacity, check in
 guests, and understand attendance.
 
 ## Product workflows
@@ -21,8 +21,8 @@ guests, and understand attendance.
 4. Signed QR ticket issuance and secure check-in.
 5. Organizer analytics and reporting.
 
-Payments will be simulated. No real card processing or real payment collection
-is planned. Public discovery and ten-minute ticket reservations are available.
+Payments are simulated. No real card processing or payment collection is performed.
+Public discovery and ten-minute ticket reservations are available.
 Simulated checkout and durable reservation confirmation are available. No real
 money is collected. Signed QR issuance, an attendee wallet and complete ticket PNG
 downloads are available. Organizer camera/manual check-in, single-use admission
@@ -39,8 +39,8 @@ bookings, simulated gross revenue, conversion, attendance and event performance.
 
 The browser uses relative `/api` URLs. Vite proxies them to Express during
 development. In production, Express serves both the compiled client and API on
-one origin. Business modules will live under `server/src/modules`; route
-handlers, business rules, and database access will have separate responsibilities.
+one origin. Business modules live under `server/src/modules`; route
+handlers, business rules, and database access have separate responsibilities.
 See [architecture](docs/architecture.md) and [implementation plan](docs/implementation-plan.md).
 
 ## Local setup
@@ -87,6 +87,7 @@ The `/api` proxy continues to target `http://127.0.0.1:4000`.
 | `npm run test:tickets` | Run signing/verification and real MongoDB issuance, isolation and recovery tests |
 | `npm run test:checkin` | Run admission policy and real MongoDB verification, replay and concurrency tests |
 | `npm run test:analytics` | Run real reporting accuracy, retry deduplication, date/cohort and tenant-isolation tests |
+| `npm run test:release` | Run the connected lifecycle with snapshot inventory, reconnect and read-only reporting checks |
 | `npm run test:watch` | Run backend tests in watch mode |
 | `npm run build` | Compile client and server |
 | `npm run check` | Run lint, type checks, tests, and builds |
@@ -245,7 +246,7 @@ does not read cookies or use browser storage. See the
 
 ## Implementation status
 
-**Current milestone: Task 12 implemented.** Attendees can reserve one ticket for
+**Current milestone: Task 13 integration and hardening verified.** Attendees can reserve one ticket for
 ten minutes, run a clearly labelled simulated success/failure checkout, retry a
 failed attempt, and view retained reservation/payment history. No money is collected.
 Idempotency keys bind immutable requests; PENDING attempts survive interruptions;
@@ -266,9 +267,14 @@ See [analytics definitions, API and reporting caveats](docs/analytics.md),
 [ticket signing, recovery and limitations](docs/ticketing.md),
 [payment architecture and recovery](docs/payments.md),
 [reservation invariants](docs/reservations.md), and the
-[Task 12 acceptance record](docs/implementation-plan.md#task-12-acceptance-record).
-The quality gate passes **1,036 tests / 40 files** (382 frontend, 654 backend), lint,
-strict types and both builds. Earlier milestone records below are historical.
+[Task 13 release-readiness report](docs/release-readiness.md).
+The quality gate passes **1,062 tests / 42 files** (394 frontend, 668 backend), lint,
+strict types and both builds. Task 13 closes late booking allocation with fresh
+application and database-clock guards, removes raw URL paths from access logs,
+adds production browser defenses and fixes the small-mobile scanner overflow.
+The real-browser paid/free checkout, QR export, admission/replay and reporting
+journeys are verified; deployment HTTPS/proxy/Atlas and physical-camera checks
+remain explicit Task 14 work. Earlier milestone records below are historical.
 
 Tasks 01–02 establish the application and MongoDB foundation. Task 03 adds the
 four authentication endpoints, Argon2id passwords, revocable JWT sessions,

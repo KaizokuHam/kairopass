@@ -1,5 +1,10 @@
 # Organizer admission — Task 11
 
+Task 13's [release audit](release-readiness.md) additionally verifies real manual
+admission/replay, USED wallet refresh and all five responsive widths. It corrects
+the preview's aspect-ratio/min-height overflow at 320 px with an explicit bounded
+width. This layout correction does not change camera permissions or admission policy.
+
 An authenticated organizer can check a signed ticket into an event they own at
 `/organizer/events/:id/check-in`. The server and persisted Ticket state decide
 admission. Camera decoding and a valid signature alone never approve entry.
