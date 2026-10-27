@@ -1,0 +1,13 @@
+import { Link } from 'react-router';
+import { Button } from '@/components/ui/button';
+import { formatEventDate, formatPrice } from '@/lib/event-format';
+import { metricNumber, metricRate } from '@/lib/analytics-format';
+import type { AnalyticsReport } from '@/types/analytics';
+export function EventPerformanceTable({ report, page }: { report: AnalyticsReport; page: (value: number) => void }) {
+  const p = report.pagination;
+  return <section className="analytics-performance" aria-labelledby="performance-heading"><header><div><p className="eyebrow">EVERY EVENT HAS A STORY</p><h2 id="performance-heading">Event performance</h2></div><span>{p.total} owned events</span></header>
+    <p>Bookings, capacity and attendance are current lifetime totals. Simulated Gross Revenue and payment attempts use the selected period.</p>
+    <div className="analytics-table-scroll" role="region" aria-label="Scrollable event performance table" tabIndex={0}><table><caption className="sr-only">Owned event performance; use links for a complete event report</caption><thead><tr><th scope="col">Event</th><th scope="col">Capacity</th><th scope="col">Confirmed / Active holds</th><th scope="col">Expired holds</th><th scope="col">Simulated Gross Revenue</th><th scope="col">Successful / Failed attempts</th><th scope="col">Tickets created / Used</th><th scope="col">Attendance</th></tr></thead><tbody>{report.events.map((event) => <tr key={event.id}><th scope="row"><Link to={'/organizer/events/' + event.id + '/analytics'}>{event.title}</Link><small>{event.status} · {formatEventDate(event.startAt)}</small><Link className="text-link" to={'/organizer/events/' + event.id + '/analytics'}>View Event Analytics<span className="sr-only"> for {event.title}</span></Link></th><td>{event.current.occupiedCapacity} / {event.current.capacity}<small>{event.current.remainingCapacity} remaining</small></td><td>{event.current.confirmedBookings} / {event.current.activeHolds}</td><td>{event.current.expiredHolds}</td><td>{formatPrice(event.period.simulatedGrossRevenuePaise)}</td><td>{event.period.successfulSimulatedPayments} / {event.period.failedSimulatedPaymentAttempts}</td><td>{event.current.ticketsCreated} / {event.current.ticketsUsed}</td><td>{metricRate(event.current.attendanceRate)}</td></tr>)}</tbody></table></div>
+    <nav className="reservation-pagination" aria-label="Event performance pages"><Button variant="ghost" disabled={p.page <= 1} onClick={() => page(p.page - 1)}>Previous events</Button><span>Page {p.page} · {metricNumber(p.total)} events</span><Button variant="ghost" disabled={p.page >= p.totalPages} onClick={() => page(p.page + 1)}>Next events</Button></nav>
+  </section>;
+}

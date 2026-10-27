@@ -15,6 +15,9 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 
 function safeMessage(status: number, code: string): string {
   const eventMessages: Record<string, string> = {
+    INVALID_ANALYTICS_QUERY: 'Review the reporting period, event filter and pagination.',
+    ANALYTICS_UNAVAILABLE: 'Analytics could not be loaded. Narrow the report or retry.',
+    ANALYTICS_STATE_UNAVAILABLE: 'Reporting data could not be verified. Please retry.',
     INVALID_CHECKIN_INPUT: 'Provide the complete signed QR credential. Do not use a ticket reference alone.',
     INVALID_QR_PAYLOAD: 'This QR credential is invalid. Entry denied.',
     INVALID_TICKET: 'This ticket is not valid for this event. Entry denied.',

@@ -5,11 +5,11 @@ export function rupeesToPaise(value: string): number | null {
   const paise = BigInt(whole) * 100n + BigInt(fraction.padEnd(2, '0'));
   return paise <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(paise) : null;
 }
-export function paiseToRupees(value: number): string {
+export function paiseToRupees(value: number | string): string {
   const paise = BigInt(value);
   return (paise / 100n).toString() + '.' + (paise % 100n).toString().padStart(2, '0');
 }
-export function formatPrice(value: number): string {
+export function formatPrice(value: number | string): string {
   const [whole, fraction] = paiseToRupees(value).split('.');
   return '₹' + new Intl.NumberFormat('en-IN').format(BigInt(whole!)) + '.' + fraction;
 }
