@@ -3,6 +3,9 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useNavigate } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { App } from '@/App';
+// Compile the real lazy module before assertion timers start. These tests measure
+// provider/HTTP behavior; cold browser chunk loading is exercised separately.
+import '@/pages/organizer/OrganizerAnalyticsPage';
 import { AuthProvider } from '@/context/AuthProvider';
 import { useAuth } from '@/hooks/useAuth';
 import { formatPrice } from '@/lib/event-format';
