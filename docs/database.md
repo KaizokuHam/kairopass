@@ -3,8 +3,8 @@
 KairoPass uses **MongoDB + Mongoose** as its permanent persistence layer. Task 02
 implements connection/readiness infrastructure, five models, indexes, and tests.
 Task 03 adds AuthSession and database-backed authentication. Task 05 adds private
-organizer event management and safe lifecycle operations. Booking orchestration,
-simulated checkout, QR signing, and check-in remain later tasks.
+organizer event management and safe lifecycle operations. Tasks 08–11 add atomic
+reservation inventory, simulated confirmation, QR issuance and single-use check-in.
 
 ## Document relationships
 
@@ -184,7 +184,7 @@ Nonce defaults use 256 cryptographic random bits. Format validation alone cannot
 prove entropy: never accept caller-supplied nonce values through HTTP inputs.
 The unique reservation index limits issuance to one ticket even under concurrent
 inserts. Schema enums do not enforce allowed state transitions or single-use
-check-in; conditional service updates in Task 11 will enforce those rules.
+check-in; Task 11 enforces single-use admission with a conditional service update.
 
 Task 10's [ticket service](ticketing.md) verifies an owned CONFIRMED reservation,
 exactly one matching durable successful simulated payment and a PUBLISHED event.
@@ -335,8 +335,8 @@ callbacks with the unique `reservationId` index and idempotent processing. A
 duplicate insert must return/recognize the existing ticket rather than minting
 another. Do not regenerate its nonce when retrying.
 
-The planned QR payload includes a version, ticket identity, and random nonce,
-signed over canonical bytes with a server-side HMAC (for example HMAC-SHA256).
+The implemented QR payload includes a version, ticket identity, and random nonce,
+signed over canonical bytes with a domain-separated server-side HMAC-SHA256.
 Use a dedicated environment-provided HMAC secret, separate from JWT signing.
 The QR contains the payload and signature, never the HMAC/JWT secret. The backend
 validates payload shape/version, checks the signature with constant-time comparison,
@@ -351,6 +351,20 @@ ticket with `status: ISSUED` and `checkedInAt: null` to USED with the server tim
 Only one concurrent request can match that predicate. USED or REVOKED tickets
 must not match. Do not use a read-then-unconditional-save sequence or trust the
 frontend to determine validity.
+
+The implemented [check-in service](checkin.md) also verifies the persisted nonce,
+event association, CONFIRMED reservation, matching durable SUCCESS payment and
+current attendee. Admission is `[startAt - 2 hours, endAt)`. The write checks
+`$$NOW` in that interval and sets checkedInAt through `$currentDate`; only its
+winner returns approval. Identity, nonce, Event inventory, Reservation and
+PaymentAttempt remain unchanged. Majority acknowledgement and bounded operations
+make uncertainty explicit; replay preserves the original time.
+
+No CheckIn collection, schema migration, TTL or hot Event update is added. History
+joins indexed event reservations to unique USED tickets, sorts by timestamp/ID,
+and paginates before joining attendee names. Current publication/confirmation/payment
+immutability contracts justify a single-ticket write. Any future workflow that
+mutates those eligibility sources must coordinate with ticket consumption.
 
 ## Connection lifecycle and readiness
 

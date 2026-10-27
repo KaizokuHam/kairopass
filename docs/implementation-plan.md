@@ -23,7 +23,7 @@ Submission deadline: **October 27, 2026, 11:59 PM IST**.
 | 08 | Reservation Engine | Completed — implementation and local acceptance verified |
 | 09 | Simulated Payment Gateway | Completed — implementation and local acceptance verified |
 | 10 | QR Ticketing | Completed — implementation and local acceptance verified |
-| 11 | Ticket Check-In | Upcoming |
+| 11 | Ticket Check-In | Completed — implementation and local acceptance verified |
 | 12 | Organizer Analytics | Upcoming |
 | 13 | Integration Testing & Hardening | Upcoming |
 | 14 | Production Release & Documentation | Upcoming |
@@ -507,3 +507,61 @@ Ready for **Task 11/14 — Organizer Ticket Check-In, QR Scanning & Atomic Singl
 Validation**, when separately authorized. Reuse strict server verification, compare
 the actual persisted nonce, validate current organizer/event/booking/time state and
 atomically win ISSUED → USED once. Signature authenticity alone is not admission.
+
+## Task 11 acceptance record
+
+Verified on **October 27, 2026 (Asia/Calcutta)**. Tasks 09 and 10 were inspected in
+source, tests and pushed history. Task 10's exact-head CI succeeded at
+`9573a895efefbfbf305a31abdc052e124a2b0b81`. The clean baseline passed 813 tests.
+Task 11 application code is recorded in `e6096b2`, `417e4bf` and `715aaae`;
+the final documentation commit records the same verified behavior.
+
+| Check | Observed result |
+| --- | --- |
+| APIs | POST/GET owned event check-ins, current persisted ORGANIZER role, live sessions, readiness, strict input, POST Origin, no-store responses; no public verification endpoint |
+| Cryptographic eligibility | Reused strict canonical HMAC verifier; persisted nonce comparison, event association, current Ticket, CONFIRMED booking, matching durable SUCCESS and attendee checked before admission |
+| Admission policy | PUBLISHED only; opens start minus two hours inclusive, closes end exclusive; underway events work after registration closes; app boundary tests and actual delayed MongoDB write-clock rejection pass |
+| Atomic write | Exact identity/nonce/reservation plus ISSUED and existing null time; $$NOW window predicate, $currentDate timestamp, majority acknowledgement and bounded operation; Event/Reservation/Payment unchanged |
+| 20 simultaneous requests | Exactly 1 HTTP 200 approval, 19 HTTP 409 TICKET_ALREADY_USED; one persisted USED ticket and identical original timestamp for every replay |
+| Two scanners | Two independently authenticated organizer sessions race to exactly one approval and one used rejection |
+| Independent tickets | Five legitimate tickets consumed concurrently, all five approved once; no shared Event write contention |
+| Replay/revoked/isolation | Existing USED time preserved; REVOKED rejected without overwriting it; wrong organizer/event and stale nonce disclose no unrelated attendee/event data |
+| Failure/recovery | Forced pre-write failure returns safe 503, explicit retry wins; real committed update followed by lost response returns uncertain 503, retry gives 409; unavailable DB recovers without invented approval |
+| Reconnection | App recreation and real database disconnect/reconnect preserve consumed state and original time |
+| History | Read-only real USED records, stable descending timestamp/ID pagination and actual count; safe name-only DTOs; failed reads give unavailable rather than fake empty history |
+| Configuration | Missing/weak/JWT-reused HMAC blocks admission with 503; authenticated history remains readable; invalid auth/unavailable DB still fail closed |
+| Backend tests | 12 pure controlled-clock policy cases and 66 real HTTP/disposable replica-set cases; focused test:checkin passes all 78 |
+| Frontend tests | 41 new cases: actual provider/router/HTTP boundary, manual input, mutex, uncertainty/retry, history/pages/window, role/session/logout/stale cleanup, camera permission/device/late-start lifecycle, wallet USED and actual PNG decoding |
+| Real decoder | A generated Q-level QR with four-module white quiet zone is written/read as PNG and decoded through the actual ZXing browser reader to the exact credential; separate abort case verifies no late preview attachment |
+| Real browser | Organizer created/published event; attendee registered, reserved, explicitly paid and generated signed ticket; organizer manually admitted it once, replay and tamper denied; history stayed at one |
+| Browser persistence | Fresh attendee login/detail shows Already Used, original admission time, no active QR/export; independent DB inspection confirms same ID/nonce and unchanged complete Event/Reservation/Payment records, reservedCount still 1 |
+| Browser layout/diagnostics | Desktop, 768px tablet and 375px phone inspected without horizontal overflow; final browser captured no warning/error logs; approval/replay/wallet screenshots saved locally |
+| Physical camera | Not exercised on hardware; permission/device/stream behavior tested with controlled media APIs and real PNG decoding, not claimed as physical capture proof |
+| Complete quality gate | After clean npm ci: zero-warning lint, both strict TypeScript checks, 932 tests / 37 files (349 frontend, 583 backend), both production builds; zero failures/skips |
+| Dependencies/build | Pinned @zxing/browser 0.2.1; 476 packages audited, zero known vulnerabilities; 428.70 KB entry, 18.18 KB lazy check-in page, 477.36 KB decoder loaded only on Start; no size warning |
+| Compiled production | Actual compiled server: 20 requests yield 1 approval/19 used; stable replay/history/wallet/reconnect, guards, Secure/HttpOnly cookies, no-store and full eligibility-record/inventory preservation pass |
+| Compiled failure/lifecycle | Missing/weak/reused HMAC, invalid JWT and unavailable DB fail closed while health/SPA/assets remain independent; all six modes drain the actual server/worker/connection and exit 0 without credential-bearing logs |
+| Scope/hygiene | No analytics, new collection/worker/env variable, real payment, shared/Atlas test fixture, committed secret/binary/export or automatic mutation retry |
+
+All test fixtures use owned disposable MongoDB 8.2.6 replica sets, `.test` accounts
+and independent ephemeral keys. No application or Atlas database was cleaned.
+The browser preview was stopped, temporary tabs closed and viewport reset.
+Proof images, credential fixture, smoke harnesses and logs remain ignored artifacts.
+
+Detailed policy, DTOs, error/retry semantics, three Mermaid diagrams, concurrency
+assumptions and camera/operating limits are in [checkin.md](checkin.md). README,
+architecture, database, ticketing and persistent engineering instructions are
+synchronized. Conventional commits are pushed together after verification;
+delivery checks the remote SHA and its actual push-triggered
+[CI run](https://github.com/KaizokuHam/kairopass/actions/workflows/ci.yml).
+
+Current limits: physical-camera acceptance remains unverified; production needs
+HTTPS, permission, supported video APIs, online verification, synchronized clocks
+and identical independent HMAC keys across instances. Key rotation invalidates
+old exports. The limiter is process-local. Future refund/transfer/confirmed
+cancellation or mutable event/payment eligibility must coordinate with consumption.
+No offline approval, revocation UI or analytics is implemented.
+
+Task 11 is complete. **Task 12/14 — Organizer Analytics Dashboard, Simulated Revenue
+Metrics, Booking Conversion & Attendance Reporting** remains unimplemented and
+requires a separate instruction to proceed. Task 13 is also outside this delivery.

@@ -79,7 +79,7 @@ and a terminal completedAt. Legacy records missing that evidence are not accepte
 as proof. The associated event must exist and remain PUBLISHED. Free events require
 the same explicit zero-value checkout. No future-start predicate is used: tickets
 must be retrievable and issuable on the event day after its start. Time/admission
-policy belongs to Task 11; AVAILABLE means this snapshot can display a credential.
+policy is implemented in [Task 11](checkin.md); AVAILABLE means this snapshot can display a credential.
 
 ```mermaid
 sequenceDiagram
@@ -117,15 +117,16 @@ No Ticket TTL is permitted; additive startup rejects an existing Ticket TTL.
 ```mermaid
 stateDiagram-v2
   [*] --> ISSUED: Task 10 explicit verified issuance
-  ISSUED --> USED: Task 11 future atomic admission
+  ISSUED --> USED: Task 11 atomic admission
   ISSUED --> REVOKED: Future authorized revocation workflow
   USED --> [*]: Retain history; no active QR
   REVOKED --> [*]: Retain history; no active QR
 ```
 
-Task 10 implements only creation and reads. It exposes no check-in, scanner,
-revocation, refund, transfer or public verification endpoint. Existing inactive
-tickets are never reactivated or replaced by a repeated issuance request.
+Task 10 implements creation and reads; [Task 11](checkin.md) adds authenticated
+organizer admission, scanner/manual entry and history. Revocation, refund,
+transfer and public verification endpoints remain absent. Existing inactive
+tickets are never reactivated or replaced by repeated issuance.
 
 ## Cryptographic wire format
 
@@ -147,7 +148,7 @@ flowchart LR
   Shape --> HMAC[Recompute domain-separated HMAC-SHA256]
   HMAC --> Compare[Length-checked crypto.timingSafeEqual]
   Compare --> Authentic[Authentic identity only]
-  Authentic --> Future[Task 11: live ticket/event/owner/time and atomic consumption]
+  Authentic --> Admission[Task 11: live ticket/event/owner/time and atomic consumption]
 ```
 
 `verifyTicket(unknown, config)` returns the minimal validated payload or null.
@@ -155,12 +156,12 @@ It rejects overlong/non-string input, missing/extra segments, padding, invalid
 alphabet/noncanonical trailing bits, malformed/duplicate/unknown JSON fields,
 reordered/whitespace-altered serialization, unsupported versions, wrong ID/nonce
 formats, wrong-length signatures, tampering and wrong keys. No ordinary string
-equality is used for MAC comparison. This server-only helper is reusable by Task 11.
+equality is used for MAC comparison. Task 11 reuses this server-only helper.
 
 A static signed QR is copyable. A valid signature proves issuer authenticity, not
-ownership, current event eligibility, revocation or previous use. Task 11 must read
-the actual ticket, compare its persisted nonce, verify organizer/event authority,
-revalidate reservation/payment/time policy, and atomically win ISSUED → USED once.
+ownership, current event eligibility, revocation or previous use. Task 11 reads
+the actual ticket, compares its persisted nonce, verifies organizer/event authority,
+revalidates reservation/payment/time policy, and atomically wins ISSUED → USED once.
 Never trust a displayed status or signature alone as permission to admit someone.
 
 ## Attendee experience and export

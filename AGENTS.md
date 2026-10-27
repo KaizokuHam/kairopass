@@ -216,8 +216,9 @@ models, indexes, inventory, payments, tickets, or connection behavior.
   Recover by owned wallet/detail reads and explicit idempotent reservation POST;
   never blindly retry insertion, replace an inactive ticket or issue during GET.
 - Generate IDs/nonces only on the backend. Never hydrate/invent a nonce on reads.
-  Preserve ticket history; no Ticket TTL (startup rejects it), deletion or mutation
-  to USED/REVOKED in this milestone.
+  Preserve ticket history; no Ticket TTL (startup rejects it) or deletion. Task 10
+  creates/reads only; Task 11 authorizes atomic USED transitions. Revocation creation
+  remains a future workflow.
 - Use independent strong canonical base64url TICKET_HMAC_SECRET, never JWT_SECRET
   or a client VITE_* key. Fail ticket configuration with 503 independently.
 - Preserve minimal canonical v1 ID/nonce payload, domain-separated HMAC-SHA256,
@@ -234,6 +235,44 @@ models, indexes, inventory, payments, tickets, or connection behavior.
   atomically win ISSUED -> USED once. Do not trust signature or UI status alone.
 - Preserve real disposable MongoDB 20-request issuance, isolation, rollback/unknown
   commit recovery, stable reconnect reads and eligibility-source race tests.
+
+## Admission contract (Task 11)
+
+- Read `docs/checkin.md` before changing check-in, ticket consumption or eligibility.
+- Reuse strict server-only `verifyTicket`, compare the actual persisted nonce in
+  constant time, and check current session/ORGANIZER role/owned Event. POST requires
+  exact trusted Origin; private reads/writes are no-store and readiness guarded.
+- Verify event association, ISSUED/null timestamp state, CONFIRMED reservation,
+  exactly one matching durable SUCCESS payment and an existing attendee. Signature
+  authenticity is never sufficient. Hide unrelated attendee/event information.
+- Admission is `[startAt - 2 hours, endAt)` for PUBLISHED events. Registration
+  deadlines and public upcoming discovery do not control admission. Invalid dates
+  or unverifiable persisted state fail closed.
+- Consume via one conditional Ticket update with exact ID/reservation/nonce,
+  ISSUED and existing null checkedInAt; MongoDB $$NOW gates the write window and
+  $currentDate sets the admission time. Use majority acknowledgement and bounded
+  operations. Only the winning update returns approval; replay is 409 with the
+  original timestamp. Never change inventory, confirmation, payment or identity.
+- A single-document write relies on frozen published owner/schedule, terminal
+  CONFIRMED/SUCCESS states, and cancellation blocked by CONFIRMED inventory. Future
+  refunds, confirmed cancellation, transfer or mutable eligibility must coordinate
+  with consumption; do not claim safety against arbitrary out-of-band edits.
+- Preserve USED/REVOKED history and safe paginated event-owned DTOs. No CheckIn
+  collection, TTL, public verification endpoint or read-driven mutation.
+- Unexpected POST failure is uncertain (possibly committed), not approval/decline.
+  History read failure is a distinct unavailable response, never fake empty success.
+  No automatic mutation retries; explicit same-credential retry may return USED.
+- Reuse scoped organizer hooks and shared API/auth handling. Hide obsolete identity
+  data, abort stale reads, and release camera tracks/decoder/preview/pending starts
+  on detection/stop/navigation/logout/unavailable session. Start only explicitly;
+  request video only, decode locally, suppress repeated frames and pause for results.
+- Manual full-credential entry uses the same server API. Credentials stay in memory
+  only and clear on completion/next/unmount; retain uncertainty only for explicit
+  retry. Never log/store credentials or place them in URLs. Fresh wallet reads show
+  Already Used and original time with no active QR/download.
+- Preserve real 20-request/split-scanner/independent-ticket/replay/reconnect and
+  uncertain-commit tests. Real image decoding and mocked media tests do not prove
+  physical-camera compatibility; report that verification separately.
 
 ## Verification and Git
 
@@ -256,6 +295,7 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - `npm run test:reservations` runs reservation HTTP/replica-set races, expiry and history; `test:db` includes it.
 - `npm run test:payments` runs real idempotency/pending/confirmation/race cases; `test:db` includes it.
 - `npm run test:tickets` runs strict crypto and real ticket issuance/security/race cases; `test:db` includes its integrations.
+- `npm run test:checkin` runs policy and real admission/security/race cases; normal tests/CI include it.
 - `npm run test:web` runs frontend tests; `npm test` and CI include both workspaces.
 - `npm run test:watch -w client` watches frontend tests; root `test:watch` watches backend tests.
 - Keep changes small and coherent; use conventional commits and the configured authorized Git identity.
@@ -274,12 +314,12 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - 08 — Reservation Engine (implemented; see verification record)
 - 09 — Simulated Payment Gateway (implemented; see verification record)
 - 10 — QR Ticketing (implemented; see verification record)
-- 11 — Ticket Check-In
+- 11 — Ticket Check-In (implemented; see verification record)
 - 12 — Organizer Analytics
 - 13 — Integration Testing & Hardening
 - 14 — Production Release & Documentation
 
 Future tasks must continue using MongoDB/Mongoose. Implement only the task the
 user authorizes. Tasks 07 discovery, 08 reservations and 09 simulated payments are
-implemented, as is Task 10 QR ticketing. Task 11 check-in is next and requires
-separate authorization.
+implemented, as are Task 10 QR ticketing and Task 11 single-use admission. Task 12
+analytics requires separate authorization; do not start it as part of Task 11.
