@@ -1,9 +1,14 @@
+import dns from 'node:dns';
 import { createApp } from './app.js';
 import { env } from './config/env.js';
 import { connectDatabase, disconnectDatabase } from './config/database.js';
 import { parseAuthEnvironment } from './config/auth.js';
 import { parseTicketEnvironment } from './modules/tickets/tickets.crypto.js';
 import { createExpirationWorker } from './modules/reservations/reservation-expiration.js';
+
+if (env.NODE_ENV !== 'production' && dns.getServers().some((s) => s === '127.0.0.1' || s === '::1')) {
+  dns.setServers(['1.1.1.1', '1.0.0.1']);
+}
 
 const expirationWorker = createExpirationWorker();
 try { parseTicketEnvironment(process.env); }
