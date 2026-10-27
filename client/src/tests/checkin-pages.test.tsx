@@ -3,6 +3,10 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useNavigate } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { App } from '@/App';
+// Precompile the real lazy ticket module before assertion timers. Browser chunk
+// loading is verified separately; this suite tests admission/session behavior.
+import '@/pages/attendee/TicketDetailsPage';
+import '@/pages/organizer/EventCheckInPage';
 import { AuthProvider } from '@/context/AuthProvider';
 import { useAuth } from '@/hooks/useAuth';
 import { startQrDecoder, type DecoderControls } from '@/lib/qr-scanner';

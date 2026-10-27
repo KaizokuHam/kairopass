@@ -61,7 +61,8 @@ describe('real payment idempotency and confirmation', () => {
   it('20 different keys racing one reservation produce only one successful attempt', async () => {
     const f = await fixture(); const responses = await Promise.all(Array.from({ length: 20 }, () => pay(f)));
     expect(responses.filter((r) => r.status === 200 && r.body.data.payment.status === 'SUCCESS')).toHaveLength(1);
-    expect(responses.every((r) => r.status === 409 || (r.status === 200 && ['SUCCESS', 'FAILED'].includes(r.body.data.payment.status)))).toBe(true);
+    expect(responses.every((r) => r.status === 409 || (r.status === 200 && ['SUCCESS', 'FAILED'].includes(r.body.data.payment.status))),
+      JSON.stringify(responses.map((r) => ({ status: r.status, code: r.body.error?.code })))).toBe(true);
     expect(await PaymentAttempt.countDocuments({ status: 'PENDING' })).toBe(0); await invariant(f, 'CONFIRMED');
   });
   it('rejects same-key outcome changes and replays the unchanged successful result', async () => {
