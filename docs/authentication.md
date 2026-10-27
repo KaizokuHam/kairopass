@@ -431,4 +431,4 @@ Sessions are verified at application startup, explicit retry, and by the backend
 on protected API requests; another tab may retain its last known UI until its
 next verification. Future resource clients must handle their server's 401/403.
 No persistent application database or production signing secret is provisioned
-by the tests. See the [acceptance record](implementation-plan.md#task-04-acceptance-record).
+by the tests. See the [verification guide](production.md#verification).

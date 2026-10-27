@@ -223,7 +223,7 @@ ephemeral signing keys and controlled clocks. They never clean application/Atlas
 data. Consistent-snapshot assertions compare reservation/payment terminal states
 and HELD+CONFIRMED inventory after races and rollback. Frontend tests replace only
 HTTP, exercising the actual router, provider, parsers, controls and recovery.
-See the [Task 09 acceptance record](implementation-plan.md#task-09-acceptance-record).
+See the [verification guide](production.md#verification).
 
 There is no durable background payment queue or automatic PENDING finalizer:
 the owner checks/resumes new Task 09 requests through the documented APIs. Pre-09

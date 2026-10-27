@@ -291,7 +291,7 @@ images and local blob media, explicit frame denial, no-referrer, nosniff and
 camera-self/microphone-off/geolocation-off permissions. Production-only HSTS does
 not assume subdomain or preload policy. Development keeps Vite HMR working.
 Actual HTTPS/proxy enforcement remains a hosting acceptance check. See
-[release readiness](release-readiness.md) for evidence, scope and remaining checks.
+[verification guide](production.md#verification) for evidence, scope and remaining checks.
 
 ## Quality gates
 

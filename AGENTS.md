@@ -314,7 +314,7 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - Local load measurements are not production capacity guarantees; keep timeouts and
   report known limitations. Task 13 audit and Task 14 deployment remain separate.
 
-- Read `docs/rubric-audit.md` for the Task 07.5 findings and future integration/deployment risks.
+- Read `docs/production.md` for production operations and integration/deployment risks.
 - Keep malformed URL encoding at safe 400 before router/static decoders, unsupported
   JSON charset/encoding at 415, and error responses no-store. Unexpected central logs
   retain request IDs/fixed metadata, never raw exception messages or credential values.
@@ -345,8 +345,8 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 
 ## Release hardening contract (Task 13)
 
-- Read `docs/release-readiness.md` before release/deployment work. Keep its tested
-  scope, issue register and unverified hosting/device limits explicit.
+- Read `docs/production.md` before release/deployment work. Keep its tested
+  scope and unverified hosting/device limits explicit.
 - Allocation refreshes application time after the active-hold query and requires
   startAt and registrationDeadline > MongoDB $$NOW in the conditional Event write.
   Preserve these guards with the capacity predicate and transactional insert.
@@ -366,7 +366,7 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 
 ## Production release contract (Task 14)
 
-- Read docs/deployment.md and docs/production-verification.md before deploying.
+- Read docs/production.md before deploying.
   Preserve the single-origin compiled Express/React service and Atlas/Mongoose.
 - render.yaml prepares a Free Node service; never infer paid billing authorization.
   Use managed environment secrets, the actual exact HTTPS Origin and provider PORT.
@@ -382,7 +382,7 @@ models, indexes, inventory, payments, tickets, or connection behavior.
   Disposable test cleanup must never target Atlas. Keep live QRs/secrets private.
 - Only record public HTTPS/Atlas workflows as PASS after observing them. A script,
   Blueprint or successful CI is not a deployed app, video or submitted academic form.
-- Keep README, deployment/demo/submission and production-verification status aligned.
+- Keep README and the production guide aligned with observed deployment evidence.
 
 ## Remaining roadmap
 
@@ -396,9 +396,9 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - 10 — QR Ticketing (implemented; see verification record)
 - 11 — Ticket Check-In (implemented; see verification record)
 - 12 — Organizer Analytics (implemented; see verification record)
-- 13 — Integration Testing & Hardening (implemented; see release-readiness report)
-- 14 — Production Release & Documentation (configuration/documents prepared and
-  published; public deployment awaits account actions; see production-verification.md)
+- 13 — Integration Testing & Hardening (implemented; see production guide)
+- 14 — Production Release & Documentation (deployed on Render with Atlas;
+  see README and docs/production.md for current links and verification scope)
 
 Future tasks must continue using MongoDB/Mongoose. Implement only the task the
 user authorizes. Tasks 07 discovery, 08 reservations and 09 simulated payments are

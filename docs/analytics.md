@@ -1,6 +1,6 @@
 # Organizer analytics — Task 12
 
-Task 13's [release audit](release-readiness.md) verifies the connected browser
+The [verification guide](production.md#verification) covers the connected browser
 journey and independent unchanged-business-record snapshots around reporting.
 Metric definitions and aggregation semantics below are unchanged by that audit.
 
@@ -214,7 +214,7 @@ labels, charts/tables, exact formatting, custom filters, pagination, drill-down,
 stale aborts, outages, logout and account isolation. Browser acceptance exercises
 the actual same journey and independently inspects persisted records. Final
 counts, compiled-server checks and local performance observations are recorded in
-the [acceptance record](implementation-plan.md#task-12-acceptance-record).
+the [verification guide](production.md#verification).
 
 These are current-state reports, not historical status snapshots. Conversion can
 change after a hold settles. Inventory may include elapsed HELD records until the

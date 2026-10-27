@@ -247,7 +247,7 @@ actual HTTP authentication, persistence, indexes, ownership, lifecycle operation
 and transactional conflicts. Query barriers pause real reads to reproduce races;
 fault injection is limited to failure-path checks. They never use/clean an
 application or production database. `npm run test:db`, `npm test`, and CI include
-the event suites. See the [acceptance record](implementation-plan.md#task-05-acceptance-record).
+the event suites. See the [verification guide](production.md#verification).
 
 ## Organizer frontend (Task 06)
 
@@ -356,4 +356,4 @@ currency/date, form, routing, lifecycle/dialog, pagination, and identity-isolati
 tests. `npm run test:watch -w client` watches them. Root `npm test`, `npm run check`,
 and CI also run unchanged backend regressions. Real-browser verification uses
 disposable accounts and an owned replica set; see the
-[Task 06 acceptance record](implementation-plan.md#task-06-acceptance-record).
+[verification guide](production.md#verification).

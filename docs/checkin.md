@@ -1,6 +1,6 @@
 # Organizer admission — Task 11
 
-Task 13's [release audit](release-readiness.md) additionally verifies real manual
+The [verification guide](production.md#verification) covers real manual
 admission/replay, USED wallet refresh and all five responsive widths. It corrects
 the preview's aspect-ratio/min-height overflow at 320 px with an explicit bounded
 width. This layout correction does not change camera permissions or admission policy.
@@ -179,7 +179,7 @@ disappear. No push synchronization, polling or offline approval is implemented.
 `npm run test:checkin` runs 12 policy cases and 66 real HTTP/MongoDB cases. Standard
 tests and CI include these suites. Frontend adds 41 cases, covering provider/router,
 HTTP boundaries, camera lifecycle and real PNG decoding. See the
-[acceptance record](implementation-plan.md#task-11-acceptance-record) for observed
+[verification guide](production.md#verification) for observed
 races, browser proof, the full gate and compiled-server checks.
 
 Production needs HTTPS, a camera-capable browser/device with user permission,

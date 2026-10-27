@@ -191,5 +191,5 @@ Run `npm run test:tickets` for the crypto and owned real MongoDB replica-set sui
 `test:unit` needs no MongoDB; `test:db`, `npm test`, `npm run check` and CI include
 ticket integration tests. Frontend tests use the real provider/router/HTTP boundary
 and decode the actual QR matrix with jsQR. Tests never use application MONGODB_URI.
-See the [Task 10 acceptance record](implementation-plan.md#task-10-acceptance-record)
+See the [verification guide](production.md#verification)
 for measured concurrency, recovery, browser export, quality gate and deployment smoke.

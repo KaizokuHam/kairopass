@@ -241,7 +241,7 @@ set, ephemeral signing keys and `.test` accounts; they ignore application MONGOD
 and guard cleanup. A consistent-snapshot assertion compares counters and active
 records after allocation, rejection, rollback, release, and races.
 
-The [Task 08 acceptance record](implementation-plan.md#task-08-acceptance-record)
+The [verification guide](production.md#verification)
 records measured races, test counts, compiled-worker and browser evidence.
 
 Task 09 must conditionally require HELD, **expiresAt > server now**, and successful

@@ -199,7 +199,7 @@ Tests own unique disposable MongoDB 8.2.6 replica sets and never consume applica
 MONGODB_URI for cleanup. Frontend tests replace only fetch, exercising actual
 components, router, session provider, stale reads, clock boundaries, and interaction.
 Real browser and compiled-server evidence is recorded in the
-[Task 07 acceptance record](implementation-plan.md#task-07-acceptance-record).
+[verification guide](production.md#verification).
 
 Persistent use requires an owned replica set/Atlas configuration; sign-in/management
 also require valid JWT/Origin configuration. Tests provision no production database
@@ -208,5 +208,5 @@ public pages, live inventory push, cursor search, payment, or ticketing are incl
 in this discovery module. Actual reservation allocation is implemented separately
 in Task 08. Public sold-out snapshots can lag expiration until cleanup or an
 authoritative reservation request reconciles inventory; explicit refresh rereads
-the Event. The [Task 08 record](implementation-plan.md#task-08-acceptance-record)
+the Event. The [verification guide](production.md#verification)
 contains current full-suite and booking/browser verification.

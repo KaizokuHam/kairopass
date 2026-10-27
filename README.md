@@ -17,8 +17,7 @@ application, with MongoDB Atlas persistence. Payments are simulated:
 
 [Source code](https://github.com/KaizokuHam/kairopass) ·
 [CI](https://github.com/KaizokuHam/kairopass/actions/workflows/ci.yml) ·
-[Deployment guide](docs/deployment.md) · [Demo script](docs/demo.md) ·
-[Submission package](docs/submission.md)
+[Production guide](docs/production.md)
 
 ## Problem and users
 
@@ -104,7 +103,7 @@ Development uses Vite at `http://localhost:5173`, proxying `/api` to
   live persisted roles and ownership; no tokens or identity in browser storage.
 
 See [architecture](docs/architecture.md), [database](docs/database.md) and the
-[release-readiness audit](docs/release-readiness.md) for trade-offs and limits.
+[production guide](docs/production.md) for trade-offs and limits.
 
 ## Run locally
 
@@ -151,7 +150,7 @@ them, share them in screenshots or place them in `VITE_*`.
 Missing/weak signing configuration fails its protected features with 503.
 `/api/ready` verifies database topology, indexes and ping; it does not certify
 signing configuration. Initial connection failures require a corrected restart.
-Production cookies are always Secure. See [deployment](docs/deployment.md) for
+Production cookies are always Secure. See [deployment](docs/production.md) for
 hosted configuration, proxy/limiter limits and recovery.
 
 ## Verify and build
@@ -166,7 +165,7 @@ npm run check
 
 The recorded verification gate passed **1,062 tests in 42 files**: 394 frontend and 668
 backend, zero failures/skips, plus lint, strict types and both builds. The
-[verification record](docs/production-verification.md) documents the scope and
+[verification guide](docs/production.md#verification) documents the scope and
 limitations of the release checks.
 
 Database tests start and clean only their own disposable replica sets. They
@@ -198,15 +197,14 @@ Express serving the compiled React frontend and API on one origin and MongoDB
 Atlas hosting the database. [render.yaml](render.yaml) documents the Node service
 configuration. Exact HTTPS Origins and independent signing keys belong in the
 managed environment; credentials are never embedded in the repository.
-See the [deployment runbook](docs/deployment.md) for setup and operational details.
+See the [deployment runbook](docs/production.md) for setup and operational details.
 
 Evaluators can self-register each role. Publish a future event with registration
 still open, use an attendee account for checkout and generate a ticket. Return
 as its organizer to check in during the admission window and inspect analytics.
 The [recorded demo](https://drive.google.com/file/d/1pH1etl-LntFd83MKz_23EYMFIff7FNq7/view?usp=sharing)
-shows the application walkthrough. The [demo guide](docs/demo.md) gives preparation
-and expected outcomes; [evaluator instructions](docs/submission.md) explain how
-to repeat the workflows.
+shows the application walkthrough. The [production guide](docs/production.md#evaluator-walkthrough)
+explains how to repeat the workflows.
 
 ## Repository map and detailed contracts
 
@@ -228,9 +226,8 @@ Business contracts: [auth](docs/authentication.md), [events](docs/events.md),
 [discovery](docs/discovery.md), [reservations](docs/reservations.md),
 [payments](docs/payments.md), [tickets](docs/ticketing.md),
 [check-in](docs/checkin.md), [analytics](docs/analytics.md).
-Historical milestones and test counts are retained in the
-[implementation plan](docs/implementation-plan.md); the
-[midpoint audit](docs/rubric-audit.md) is historical.
+Production setup, operational safeguards, verification and evaluator instructions
+are consolidated in the [production guide](docs/production.md).
 
 ## Known limitations
 

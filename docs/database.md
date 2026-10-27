@@ -461,7 +461,7 @@ deployment; a standalone instance is insufficient. See
 
 ## Tests and safety
 
-Task 13's [release acceptance](release-readiness.md) connects the implemented
+The [verification guide](production.md#verification) connects the implemented
 lifecycle using a separately queried, consistent-snapshot inventory oracle after
 each transition. It also verifies unchanged business records around reporting.
 No live counter repair, schema migration or new index is introduced by that audit.
