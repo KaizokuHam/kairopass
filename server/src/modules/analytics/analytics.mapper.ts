@@ -27,6 +27,9 @@ export function mapMetrics(raw: RawMetrics = {}) {
   };
 }
 export function mapReport(raw: RawReport | undefined, scope: ReportScope, page: number, limit: number) {
+  // A $facet always returns one envelope, including for zero owned events.
+  // Missing output is an unavailable report, never evidence of zero business activity.
+  if (!raw) return unavailable();
   const total = count(raw?.totals[0]?.total ?? 0);
   const points = new Map((raw?.series ?? []).map((point) => [point._id, point]));
   const length = Math.ceil((scope.to.getTime() - scope.from.getTime()) / scope.bucketMs);

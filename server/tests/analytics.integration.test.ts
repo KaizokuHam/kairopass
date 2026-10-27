@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import request from 'supertest';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
@@ -48,6 +48,35 @@ function overview(f: Fixture, query = '', cookie = f.a.cookie) { return request(
 async function records() { return Promise.all([Event, Reservation, PaymentAttempt, Ticket].map((model) => model.collection.find({}).sort({ _id: 1 }).toArray())); }
 
 describe('real organizer analytics accuracy and privacy', () => {
+  it('reports a real paid failure/retry/replay/issuance/admission journey and a free checkout without double-counting', async () => {
+    vi.useRealTimers();
+    app = createApp({ mode: 'test', logLevel: 'silent', authEnvironment: { JWT_SECRET: randomBytes(48).toString('base64url'), TICKET_HMAC_SECRET: randomBytes(48).toString('base64url'), CLIENT_ORIGIN: 'http://localhost:5173' } });
+    const a = await actor(app), attendee = await actor(app, 'ATTENDEE', 'journey@example.test'), b = await actor(app, 'ORGANIZER', 'isolated@example.test');
+    async function checkout(pricePaise: number) {
+      const created = await request(app).post('/api/organizer/events').set('Cookie', a.cookie).set('Origin', 'http://localhost:5173').send({ ...eventInput, pricePaise, startAt: new Date(Date.now() + 1800000).toISOString(), endAt: new Date(Date.now() + 7200000).toISOString(), registrationDeadline: new Date(Date.now() + 600000).toISOString() }).expect(201);
+      const eventId: string = created.body.data.event.id;
+      await request(app).post(`/api/organizer/events/${eventId}/publish`).set('Cookie', a.cookie).set('Origin', 'http://localhost:5173').expect(200);
+      const held = await request(app).post('/api/reservations').set('Cookie', attendee.cookie).set('Origin', 'http://localhost:5173').send({ eventId }).expect(201);
+      const reservationId: string = held.body.data.reservation.id, path = `/api/reservations/${reservationId}/payments`;
+      async function pay(outcome: string, key: string) { return request(app).post(path).set('Cookie', attendee.cookie).set('Origin', 'http://localhost:5173').set('Idempotency-Key', key).send({ simulationOutcome: outcome }).expect(200); }
+      if (pricePaise) { const key = randomUUID(); const failed = await pay('FAILURE', key); await pay('FAILURE', key); expect(failed.body.data.payment.status).toBe('FAILED'); }
+      const key = randomUUID(); await pay('SUCCESS', key); await pay('SUCCESS', key); return { eventId, reservationId };
+    }
+    const paid = await checkout(49900);
+    const issued = await request(app).post(`/api/reservations/${paid.reservationId}/ticket`).set('Cookie', attendee.cookie).set('Origin', 'http://localhost:5173').send({}).expect(201);
+    await request(app).post(`/api/organizer/events/${paid.eventId}/check-ins`).set('Cookie', a.cookie).set('Origin', 'http://localhost:5173').send({ qrPayload: issued.body.data.ticket.qrPayload }).expect(200);
+    const path = base + 'overview?period=7d';
+    const first = await request(app).get(path).set('Cookie', a.cookie).expect(200);
+    expect(first.body.data.metrics.current).toMatchObject({ confirmedBookings: 1, ticketsCreated: 1, ticketsUsed: 1, attendanceRate: 100 });
+    expect(first.body.data.metrics.period).toMatchObject({ simulatedGrossRevenuePaise: '49900', successfulSimulatedPayments: 1, failedSimulatedPaymentAttempts: 1, checkIns: 1, reservationConversionRate: 100 });
+    await checkout(0); const before = await records();
+    const second = await request(app).get(path).set('Cookie', a.cookie).expect(200);
+    expect(second.body.data.metrics.current).toMatchObject({ confirmedBookings: 2, ticketsCreated: 1, ticketsUsed: 1, attendanceRate: 50 });
+    expect(second.body.data.metrics.period).toMatchObject({ simulatedGrossRevenuePaise: '49900', successfulSimulatedPayments: 2, failedSimulatedPaymentAttempts: 1, reservationConversionRate: 100 });
+    expect((await request(app).get(path).set('Cookie', b.cookie).expect(200)).body.data.metrics.current.totalEvents).toBe(0);
+    await request(app).get(`/api/organizer/events/${paid.eventId}/analytics`).set('Cookie', b.cookie).expect(404);
+    expect(await records()).toEqual(before); expect(await PaymentAttempt.countDocuments()).toBe(3);
+  });
   it('reduces retries before joining bookings/tickets and exactly matches the independent fixture totals', async () => {
     const f = await fixture(), response = await overview(f).expect(200), { metrics, pagination, trends } = response.body.data;
     expect(metrics.current).toEqual({ totalEvents: 4, publishedEvents: 2, draftEvents: 1, cancelledEvents: 1, capacity: 20, occupiedCapacity: 6, remainingCapacity: 14, capacityUtilization: 30,
