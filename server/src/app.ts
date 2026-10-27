@@ -17,6 +17,7 @@ import { createPaymentsRouter } from './modules/payments/payments.routes.js';
 import { parseTicketEnvironment, type TicketConfig } from './modules/tickets/tickets.crypto.js';
 import { createTicketIssuanceRouter, createTicketsRouter } from './modules/tickets/tickets.routes.js';
 import { createCheckInRouter } from './modules/checkin/checkin.routes.js';
+import { createAnalyticsRouter } from './modules/analytics/analytics.routes.js';
 
 interface AppOptions {
   mode?: 'development' | 'test' | 'production';
@@ -75,6 +76,8 @@ export function createApp(options: AppOptions = {}) {
   try { ticketConfig = parseTicketEnvironment({ ...(options.authEnvironment ?? process.env), TICKET_HMAC_SECRET: (options.ticketEnvironment ?? options.authEnvironment ?? process.env).TICKET_HMAC_SECRET }); }
   catch { ticketConfig = null; }
   app.use('/api/auth', createAuthRouter(authConfig));
+  app.use('/api/organizer/analytics', createAnalyticsRouter(authConfig));
+  app.use('/api/organizer/events/:eventId/analytics', createAnalyticsRouter(authConfig, true));
   app.use('/api/organizer/events/:eventId/check-ins', createCheckInRouter(authConfig, ticketConfig));
   app.use('/api/organizer/events', createEventsRouter(authConfig));
   app.use('/api/events', createDiscoveryRouter());
