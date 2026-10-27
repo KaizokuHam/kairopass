@@ -276,6 +276,44 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 
 ## Verification and Git
 
+### Analytics contract (Task 12)
+
+- Read `docs/analytics.md` before changing reporting, formulas or activity timestamps.
+- Reports are read-only and organizer-owned. Reuse readiness, live AuthSession and
+  current persisted ORGANIZER role; never accept organizerId from the client.
+  Scope Event ownership before joining records; private responses are no-store.
+- Separate current/lifetime metrics from selected-period activity. Current active
+  HELD requires expiresAt > generatedAt; elapsed HELD awaiting cleanup is separate.
+  Use Event.reservedCount for occupied inventory; analytics must never run expiry,
+  release capacity, repair counters or mutate any business record.
+- Conversion is current CONFIRMED / all reservations from the same createdAt cohort.
+  Attendance is cumulative valid USED / lifetime CONFIRMED. Zero or inconsistent
+  denominators return null/N/A. No fabricated percentages or growth comparisons.
+- Period event/reservation/ticket creation uses createdAt; successful simulated
+  settlements use completedAt; failed/pending attempt cohorts use createdAt;
+  check-in activity uses checkedInAt. Keep [from,to), explicit offset validation,
+  custom range bounds, UTC bucket labels and at most 90 zero-filled points.
+- Genuine simulated revenue requires exactly one durable matching SUCCESS for a
+  CONFIRMED booking. Reduce retries before joining booking/ticket totals. Exclude
+  duplicate/mismatched/legacy success evidence and expose safe aggregate diagnostics,
+  never choose an arbitrary success or silently repair it. Free payments add zero.
+- Validate safe integer source paise; convert Int64 -> Decimal128 before summing.
+  JSON monetary totals are canonical integer strings, formatted through BigInt.
+  Overflow, impossible inventory or missing aggregate envelopes fail closed.
+- Keep aggregation scoped, projected, bounded and snapshot-read; existing indexes
+  are additive/verified. No full collection materialization or per-event Node query
+  loops. Combined overview supplies dashboard KPIs/trends/page in one request.
+- Reuse owner-scoped abort/generation hooks and AuthProvider. Hide obsolete private
+  data on filters, session uncertainty, logout or account change. Errors are never
+  zero metrics. No browser persistence or optimistic reporting data.
+- Keep charts accessible through labelled units/dates, keyboard bucket selection,
+  complete data tables and genuine empty states. Label every financial value as
+  simulated; do not imply money collected, refunds, net revenue, payouts or forecasts.
+- Preserve disposable real aggregation fixtures, payment retry/replay-to-admission
+  journeys, exact numeric/time-boundary cases, tenant isolation and read-only checks.
+- Local load measurements are not production capacity guarantees; keep timeouts and
+  report known limitations. Task 13 audit and Task 14 deployment remain separate.
+
 - Read `docs/rubric-audit.md` for the Task 07.5 findings and future integration/deployment risks.
 - Keep malformed URL encoding at safe 400 before router/static decoders, unsupported
   JSON charset/encoding at 415, and error responses no-store. Unexpected central logs
@@ -296,6 +334,7 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - `npm run test:payments` runs real idempotency/pending/confirmation/race cases; `test:db` includes it.
 - `npm run test:tickets` runs strict crypto and real ticket issuance/security/race cases; `test:db` includes its integrations.
 - `npm run test:checkin` runs policy and real admission/security/race cases; normal tests/CI include it.
+- `npm run test:analytics` runs numeric-integrity and real reporting accuracy/security tests; normal tests/CI include it.
 - `npm run test:web` runs frontend tests; `npm test` and CI include both workspaces.
 - `npm run test:watch -w client` watches frontend tests; root `test:watch` watches backend tests.
 - Keep changes small and coherent; use conventional commits and the configured authorized Git identity.
@@ -315,11 +354,12 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - 09 — Simulated Payment Gateway (implemented; see verification record)
 - 10 — QR Ticketing (implemented; see verification record)
 - 11 — Ticket Check-In (implemented; see verification record)
-- 12 — Organizer Analytics
+- 12 — Organizer Analytics (implemented; see verification record)
 - 13 — Integration Testing & Hardening
 - 14 — Production Release & Documentation
 
 Future tasks must continue using MongoDB/Mongoose. Implement only the task the
 user authorizes. Tasks 07 discovery, 08 reservations and 09 simulated payments are
-implemented, as are Task 10 QR ticketing and Task 11 single-use admission. Task 12
-analytics requires separate authorization; do not start it as part of Task 11.
+implemented, as are Task 10 QR ticketing, Task 11 single-use admission and Task 12
+organizer analytics. Task 13 integration/hardening and Task 14 deployment require
+separate authorization; do not start them as part of Task 12.

@@ -246,6 +246,14 @@ push-triggered CI conclusion are reported with the delivery.
 
 ## F. Remaining roadmap and deployment readiness
 
+This roadmap and the journey assessment below are the historical Task 07.5 audit
+snapshot. Tasks 08–12 have since been implemented and verified; see their
+[acceptance records](implementation-plan.md#task-12-acceptance-record). Task 12 now
+derives simulated revenue, booking conversion and attendance from real persisted
+records with organizer isolation and read-only accuracy tests. This milestone
+update does not replace Task 13's final integration/security audit or Task 14's
+hosted deployment and submission verification.
+
 | Milestone | Prerequisites already verified | Required implementation/verification in that task | Ready to start? |
 | --- | --- | --- | --- |
 | 08 — Reservation Engine | Transactional topology/readiness, safe occupied inventory, active user/event partial unique index, expiration scan index, event lifecycle predicates and cancellation race tests | Validate persisted attendee and public eligibility; reconcile elapsed HELD records; conditionally increment the same PUBLISHED event and insert price-snapshot hold in one transaction; implement idempotent expiry/release, concurrency/rollback tests, no reservation TTL | Yes, with explicit transactional integration requirements |

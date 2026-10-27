@@ -26,7 +26,8 @@ is planned. Public discovery and ten-minute ticket reservations are available.
 Simulated checkout and durable reservation confirmation are available. No real
 money is collected. Signed QR issuance, an attendee wallet and complete ticket PNG
 downloads are available. Organizer camera/manual check-in, single-use admission
-and retained event history are available. Analytics remains Task 12.
+and retained event history are available. Organizer analytics now reports real
+bookings, simulated gross revenue, conversion, attendance and event performance.
 
 ## Stack and architecture
 
@@ -85,6 +86,7 @@ The `/api` proxy continues to target `http://127.0.0.1:4000`.
 | `npm run test:payments` | Run real simulated-payment idempotency, pending recovery, confirmation and race tests |
 | `npm run test:tickets` | Run signing/verification and real MongoDB issuance, isolation and recovery tests |
 | `npm run test:checkin` | Run admission policy and real MongoDB verification, replay and concurrency tests |
+| `npm run test:analytics` | Run real reporting accuracy, retry deduplication, date/cohort and tenant-isolation tests |
 | `npm run test:watch` | Run backend tests in watch mode |
 | `npm run build` | Compile client and server |
 | `npm run check` | Run lint, type checks, tests, and builds |
@@ -243,7 +245,7 @@ does not read cookies or use browser storage. See the
 
 ## Implementation status
 
-**Current milestone: Task 11 implemented.** Attendees can reserve one ticket for
+**Current milestone: Task 12 implemented.** Attendees can reserve one ticket for
 ten minutes, run a clearly labelled simulated success/failure checkout, retry a
 failed attempt, and view retained reservation/payment history. No money is collected.
 Idempotency keys bind immutable requests; PENDING attempts survive interruptions;
@@ -255,12 +257,17 @@ durable successful-payment evidence and never changes inventory or confirmation.
 Organizers can scan or paste signed credentials for their events, approve eligible
 admission exactly once, and review persisted check-in history. USED tickets retain
 their original admission time and no longer expose an active attendee QR.
-See [admission policy, atomic consumption and scanner limitations](docs/checkin.md),
+Organizers can compare owned events in a private analytics dashboard with exact
+simulated gross revenue, booking-cohort conversion, lifetime attendance, UTC trends
+and period/event filters. Every value comes from persisted records; no real money
+is collected. Current inventory and selected-period activity are labelled separately.
+See [analytics definitions, API and reporting caveats](docs/analytics.md),
+[admission policy, atomic consumption and scanner limitations](docs/checkin.md),
 [ticket signing, recovery and limitations](docs/ticketing.md),
 [payment architecture and recovery](docs/payments.md),
 [reservation invariants](docs/reservations.md), and the
-[Task 11 acceptance record](docs/implementation-plan.md#task-11-acceptance-record).
-The quality gate passes **932 tests / 37 files** (349 frontend, 583 backend), lint,
+[Task 12 acceptance record](docs/implementation-plan.md#task-12-acceptance-record).
+The quality gate passes **1,036 tests / 40 files** (382 frontend, 654 backend), lint,
 strict types and both builds. Earlier milestone records below are historical.
 
 Tasks 01–02 establish the application and MongoDB foundation. Task 03 adds the
@@ -320,7 +327,8 @@ also verify public access without JWT configuration and safe database failures.
 Task 08 adds reservation orchestration, atomic inventory and expiring holds.
 Task 09 adds simulated checkout and atomic confirmation. Task 10 adds secure QR
 ticket issuance and the attendee wallet. Task 11 adds atomic single-use admission
-and the organizer scanner/history workspace. Analytics remains upcoming.
+and the organizer scanner/history workspace. Task 12 adds organizer-scoped analytics.
+Tasks 13 integration/hardening and 14 deployment remain upcoming.
 Displayed public capacity never guarantees allocation.
 [AGENTS.md](AGENTS.md) records the permanent stack and
 engineering rules for future sessions.

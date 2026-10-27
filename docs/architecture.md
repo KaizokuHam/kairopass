@@ -40,7 +40,8 @@ attendee allocation/history/cancellation and transactional expiry. Payments owns
 two-stage simulated checkout, idempotency, owned history and atomic confirmation.
 Tickets owns verified issuance, owned wallet/detail reads and server-only HMAC
 signing/verification. Check-in owns event-specific admission, atomic ticket
-consumption and history. Analytics remains a future module. Each owns its router, Zod request validation, service rules,
+consumption and history. Analytics owns private read-only organizer metrics,
+trends and event performance, reducing relationships before joining totals. Each owns its router, Zod request validation, service rules,
 and persistence operations. Routes should translate HTTP; services should enforce
 business invariants. Modules will call explicit service contracts instead of
 reaching into each other's controllers. Task 03 adds only the four `/api/auth`
@@ -51,6 +52,11 @@ Task 11 adds GET/POST `/api/organizer/events/:eventId/check-ins`; it mounts befo
 the generic organizer event router and reuses current session/role/Origin guards.
 [Check-in contracts](checkin.md) explain the time policy, single-document write,
 privacy, uncertainty recovery and camera cleanup.
+Task 12 adds `/api/organizer/analytics/{overview,trends,events}` and owned
+`/api/organizer/events/:eventId/analytics`. A combined overview snapshot feeds the
+dashboard's KPIs, charts and paginated event table with one request. Current
+inventory/lifetime attendance and selected-period activity/cohort conversion are
+explicitly separate. See [metric definitions and exact monetary aggregation](analytics.md).
 [Ticket contracts](ticketing.md) describe the independent key and recovery boundary.
 [Payments](payments.md) uses the existing
 connection, session/Origin/role guards and reservation inventory primitives.
@@ -269,6 +275,7 @@ The client build entry sets NODE_ENV=production before loading Vite, so a copied
 development API `.env` cannot select development React in release assets. QR ticket
 details/encoding are loaded separately from the entry chunk. The organizer
 check-in page is lazy, and the camera decoder loads only after Start camera.
+The analytics page is also lazy; its accessible SVG charts need no new dependency.
 An omitted HOST uses loopback for development/test and 0.0.0.0 for production;
 explicit HOST and platform PORT remain authoritative. Hosted deployment must remove
 or change the local example's explicit loopback override.

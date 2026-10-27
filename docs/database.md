@@ -5,6 +5,7 @@ implements connection/readiness infrastructure, five models, indexes, and tests.
 Task 03 adds AuthSession and database-backed authentication. Task 05 adds private
 organizer event management and safe lifecycle operations. Tasks 08–11 add atomic
 reservation inventory, simulated confirmation, QR issuance and single-use check-in.
+Task 12 adds read-only organizer-scoped analytics over these same collections.
 
 ## Document relationships
 
@@ -365,6 +366,29 @@ joins indexed event reservations to unique USED tickets, sorts by timestamp/ID,
 and paginates before joining attendee names. Current publication/confirmation/payment
 immutability contracts justify a single-ticket write. Any future workflow that
 mutates those eligibility sources must coordinate with ticket consumption.
+
+## Read-only analytics — Task 12
+
+The [analytics module](analytics.md) matches authenticated owned Events before
+joining Reservations, PaymentAttempts and Tickets. It reduces payment retries and
+the unique ticket per reservation before combining counts. One snapshot aggregate
+facets overall metrics, a bounded event page/count and at most 90 trend buckets.
+This avoids multiplying bookings or simulated revenue through joins. Existing
+organizer/event/reservation-prefix indexes serve the access paths; no collection,
+connection, schema migration or index replacement is introduced.
+
+Revenue requires one genuine durable SUCCESS for a CONFIRMED reservation, matching
+the reservation amount and original successful simulation outcome. Duplicate or
+legacy/inconsistent success evidence is excluded and diagnosed. Safe integer
+paise converts through Int64 to Decimal128 for exact sums; JSON totals are canonical
+integer strings and counts are checked for safe-number overflow. Reporting never
+changes status, expires holds, reconciles counters or repairs records.
+
+Current inventory uses the stored Event counter, including elapsed HELD records
+awaiting the existing expiry worker; active holds separately require future expiry.
+Conversion uses a reservation-creation cohort, attendance uses lifetime confirmed
+bookings, successful settlement uses completedAt and check-ins use checkedInAt.
+See the central metrics contract for exact time scopes and anomaly handling.
 
 ## Connection lifecycle and readiness
 

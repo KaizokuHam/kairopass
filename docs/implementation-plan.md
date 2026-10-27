@@ -24,7 +24,7 @@ Submission deadline: **October 27, 2026, 11:59 PM IST**.
 | 09 | Simulated Payment Gateway | Completed — implementation and local acceptance verified |
 | 10 | QR Ticketing | Completed — implementation and local acceptance verified |
 | 11 | Ticket Check-In | Completed — implementation and local acceptance verified |
-| 12 | Organizer Analytics | Upcoming |
+| 12 | Organizer Analytics | Completed — implementation and local acceptance verified |
 | 13 | Integration Testing & Hardening | Upcoming |
 | 14 | Production Release & Documentation | Upcoming |
 
@@ -565,3 +565,68 @@ No offline approval, revocation UI or analytics is implemented.
 Task 11 is complete. **Task 12/14 — Organizer Analytics Dashboard, Simulated Revenue
 Metrics, Booking Conversion & Attendance Reporting** remains unimplemented and
 requires a separate instruction to proceed. Task 13 is also outside this delivery.
+
+## Task 12 acceptance record
+
+Verified on **October 27, 2026 (Asia/Calcutta)**. Clean `main` was synchronized at
+`79783f4607f91fe1129df05ffd05d39da2099645`; Tasks 09–11 were verified in source,
+tests, actual flows and pushed history, including successful exact-head Task 11 CI.
+The Task 12 baseline passed all 932 tests. Backend implementation, frontend,
+journey/numeric safeguards and isolated test-harness corrections are recorded in
+`cdfaf10`, `5e06650`, `b4f9013` and `133755d` respectively. The measured streaming
+query correction is recorded in `ea22eb0`.
+
+| Check | Observed result |
+| --- | --- |
+| APIs | Private GET overview, trends, paginated event performance and owned event analytics; current ORGANIZER/session/readiness guards, explicit DTOs and no-store |
+| Query strategy | Organizer Event match first; payment attempts and unique tickets reduced per reservation before totals; snapshot read, bounded metadata query, five-second aggregate, at most 90 series points and 50 event rows |
+| Dashboard efficiency | Combined overview returns KPIs, series and event page in one request; no duplicate three-query dashboard work, unbounded frontend sort or per-event Node query loop |
+| Independent fixture | Organizer A owns paid/free/draft/cancelled/past events; Organizer B has separate revenue/attendance; retained mixed reservation/payment/ticket records expose fan-out and date/cohort errors |
+| Exact fixture revenue | Three genuine paid confirmations at 49,900 paise plus one free success give 149,700 paise; failed/pending attempts add nothing; no cross-organizer 99,999 paise contribution |
+| Conversion and attendance | Selected cohort 3 confirmed / 7 created = 42.86%; cumulative 1 used / 4 confirmed = 25%; all-time cohort 4 / 8 = 50%; empty denominators are null |
+| Payment integrity | Multiple failed retries do not multiply bookings/revenue; duplicate, mismatched, legacy or invalid original success evidence is excluded with a safe aggregate diagnostic, never repaired |
+| Money precision | Source paise validated, Int64 -> Decimal128 sums, canonical integer-string DTOs; exact 18,014,398,509,531,882-paise aggregate preserved and formatted correctly above Number.MAX_SAFE_INTEGER |
+| Inventory/tickets | Current stored occupancy, future active holds, elapsed awaiting expiry, confirmed/expired/cancelled histories and ISSUED/USED/REVOKED counts remain distinct; unissued confirmed bookings do not invent tickets |
+| Dates/trends | 7/30/90/all and bounded custom intervals; inclusive from/exclusive to, explicit offsets, UTC grouping, chronological zero buckets; reservation cohorts, payment completion and actual check-in times tested separately |
+| History/performance | Draft/cancelled/past owned events retained; event-filter ownership 404, deterministic metric/date sorting and bounded pagination verified |
+| Read-only isolation | Complete Event/Reservation/PaymentAttempt/Ticket snapshots unchanged after all report APIs; no credential/account/attendee identifiers in DTOs; anonymous/attendee/changed-role and cross-organizer cases rejected |
+| Reliability | Safe DB outage/query failure/config errors, reconnection, missing-result and numeric overflow safeguards; no outage-as-zero report; analytics remains independent of ticket HMAC configuration |
+| Backend tests | 57 real HTTP/disposable MongoDB aggregation/journey cases plus 14 numeric-integrity policy cases: 71 new backend tests in normal tests/CI |
+| Real HTTP journey | Actual register/publish/hold, failure key replay, success key replay, ticket issuance/admission and free checkout: only three payment records, two confirmations, one ticket/check-in and unchanged paid revenue |
+| Frontend tests | 33 new real provider/router/HTTP-boundary cases: KPI/series accuracy, exact currency, N/A, loading/errors/retry, custom/period/event filters, sorting/pages/drill-down, stale aborts, unmount, session/logout/account isolation and accessible chart controls |
+| Real browser paid flow | Organizer and attendee registered; event published/discovered; paid hold failed once then succeeded; signed ticket issued and admitted; dashboard showed 1 confirmed, 1 failed attempt, 1 success, 49,900 paise, 1 check-in |
+| Real browser free flow | Explicit free checkout raised confirmed count to 2 and successful payments to 2 while gross simulated revenue stayed 49,900 paise; attendance became 50%, conversion 100%, one unissued free confirmation retained |
+| Real browser scope | Seven-day/custom local dates, server revenue sort, owned-event drill-down and keyboard chart bucket exploration exercised; another organizer saw zeros and a safe unowned-event not-found response |
+| Browser persistence/layout | Independent database proof confirms no reporting writes or double counting; 1440/768/390/320 widths fit without document overflow; tables scroll locally; final captured warning/error logs empty |
+| Cold-test correction | A clean-install run exposed first-render assertion contention in three UI suites with four workers; two isolated workers and precompiling the actual analytics lazy module before assertion timers fixed it; all assertions, timeouts, auth and HTTP behavior preserved; 84 affected tests then passed |
+| Final clean-install gate | npm ci audited 476 packages with zero reported vulnerabilities; zero-warning lint, both strict types, all 1,036 tests / 40 files (382 frontend, 654 backend), both production builds; zero failures/skips |
+| Build/dependencies | No new dependency; native accessible SVG charts; lazy analytics page 24.07 KB, entry 429.95 KB; no chunk-size warning |
+| Compiled production | Actual built server validates paid failure/retry/replay/admission, free confirmation, exact metrics/rates, four report APIs, ownership/session/role isolation, no-store and Secure/HttpOnly cookies; business records unchanged |
+| Production failures/lifecycle | Missing/weak/JWT-reused ticket key each leaves genuine analytics available; invalid JWT/unavailable DB fail closed; health/SPA/assets independent; all six modes drain real server/worker/connection and exit 0 without credential-bearing logs |
+| Load finding/correction | Initial nested query took 2.7–3.0 seconds for 100 events/2,000 expired reservations, then hit its five-second budget on a repeat; streamed indexed equality joins replace per-booking subpipelines, retaining all 71 analytics accuracy/security tests and the same budget |
+| Final load repeat | Same disposable 100-event/2,000-record fixture returned 200 with exact metrics, bounded rows/series and organizer index observed in 1,292 / 1,136 / 1,227 ms; no hosted or payment-heavy scale claim |
+| Scope/hygiene | No Task 13 audit/deployment, real gateway, fake business charts, new DB/collection/connection, secret/env requirement, live Atlas fixture, committed generated artifact or skipped regression |
+
+All fixtures are disposable MongoDB 8.2.6 replica sets with ephemeral independent
+keys and `.test` accounts. No shared or Atlas database was used or cleaned. Browser
+tabs/viewport overrides and preview processes were released. Proof screenshots,
+credential fixture, production harnesses, load measurements and logs remain ignored.
+
+The central metric contract, exact scopes/formulas, API/DTOs, data-flow diagram,
+aggregation/index/precision design, UI states and operational caveats are in
+[analytics.md](analytics.md). README, architecture, database, audit context and
+persistent instructions are synchronized. Delivery verifies the pushed remote SHA
+and its actual push-triggered [GitHub Actions](https://github.com/KaizokuHam/kairopass/actions/workflows/ci.yml).
+
+Current limits: reports reflect current states, not historical status ledgers;
+conversion can evolve; elapsed HELD inventory awaits the existing expiry worker;
+anomalous/legacy success evidence is excluded rather than estimated. Metric sorts
+scan matched owned history before pagination and may reach the five-second budget
+for larger tenants. Current-page event selection is bounded; private event routes
+provide arbitrary owned-event drill-down. Local load measurements do not establish
+production capacity. No refunds, tax/net revenue, payouts, forecasts, exports or
+real financial reporting is included.
+
+Task 12 is complete and ready for **Task 13/14 — End-to-End Integration Testing,
+Security Hardening, Accessibility & Final Product Polish**, when separately
+authorized. Tasks 13 and 14 remain unimplemented in this delivery.
