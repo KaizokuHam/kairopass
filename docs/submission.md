@@ -23,11 +23,11 @@ report bookings, attendance and exact simulated revenue.
 
 | Submission field | Actual status / entry |
 | --- | --- |
-| Public application URL | **Not yet verified — do not submit a placeholder URL** |
-| Hosting provider | Render Node Web Service configuration prepared; service creation unverified |
-| MongoDB Atlas | Read-only connectivity/topology confirmed with process-local DNS diagnosis; dedicated identity/index initialization/write transactions still unverified; writes: 0 |
-| HTTPS verification date | Not tested |
-| Health/readiness verification date | Not tested in public production |
+| Public application URL | [Open KairoPass](https://kairopass-vaibhav.onrender.com) |
+| Hosting provider | Render; Express serves the React frontend and API on one origin |
+| MongoDB Atlas | Application database readiness returned HTTP 200; final cleanup made no database writes |
+| HTTPS verification date | 2026-10-27 — anonymous home request returned HTTP 200 |
+| Health/readiness verification date | 2026-10-27 — both public endpoints returned HTTP 200 |
 
 Use [production-verification.md](production-verification.md) to record the actual
 URL, timestamps and observed workflow results after deployment. A build or CI
@@ -52,7 +52,9 @@ milestone hash as the final deployment revision.
 
 ## Demonstration
 
-**Video: not recorded or uploaded.** No public video link is available.
+**Recorded video:** [Watch the KairoPass Demo](https://drive.google.com/file/d/1pH1etl-LntFd83MKz_23EYMFIff7FNq7/view?usp=sharing).
+The supplied MP4 viewer returned HTTP 200 to an anonymous request without a
+sign-in requirement on 2026-10-27. Full video playback was not reviewed in cleanup.
 The [five-minute script and shot list](demo.md) includes preparation, exact
 navigation, suggested voiceover, expected real fixture outcomes and privacy checks.
 Record with a supported trusted recorder, watch it fully, upload to the student's
@@ -157,9 +159,9 @@ be verified independently.
 | Deliverable | Prepared | Verified | Uploaded / submitted |
 | --- | --- | --- | --- |
 | Source repository | Yes | Task 14 local gate/production smoke and exact configuration-candidate CI passed | Main published; use current main SHA/CI in the form |
-| Public app / Atlas | Configuration and runbook | No public acceptance yet | Service creation unverified |
+| Public app / Atlas | Configuration and runbook | Public home, health and readiness returned 200; full workflows not rerun during cleanup | Live on Render |
 | Documentation | README, deployment, demo, submission and evidence ledger | Local links/secret review and GitHub README rendering passed | Published on main |
-| Demo video | Exact script/shot list | Recording absent | Not uploaded |
+| Demo video | Recorded MP4 and script/shot list | Anonymous viewer opened; playback not reviewed in cleanup | Supplied Google Drive link available |
 | Academic form | Entries below prepared | Form URL/account not provided | **Not submitted** |
 
 Exact form entries that can already be used:
@@ -170,7 +172,8 @@ Exact form entries that can already be used:
   admission and organizer analytics.
 - **Repository:** https://github.com/KaizokuHam/kairopass.
 - **Stack:** MongoDB Atlas/Mongoose, Express, React/Vite, Node.js, TypeScript.
-- **Live URL / video URL:** leave unresolved until actual links are verified.
+- **Live URL:** https://kairopass-vaibhav.onrender.com.
+- **Video URL:** https://drive.google.com/file/d/1pH1etl-LntFd83MKz_23EYMFIff7FNq7/view?usp=sharing.
 - **Release SHA / CI URL:** copy the final actual main SHA and its successful run.
 
 No official form URL or authenticated academic submission account was supplied.

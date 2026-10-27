@@ -1,20 +1,24 @@
-# KairoPass
+# KairoPass — Full-Stack Event Booking and Ticketing Platform
 
 **Discover an event. Reserve a place. Carry a signed ticket. Enter once.**
 
 KairoPass connects event discovery, ten-minute reservations, simulated checkout,
 digital tickets, entrance verification and organizer reporting in one MERN app.
 
+## Live Application & Demo
+
+- **Live Website:** [Open KairoPass](https://kairopass-vaibhav.onrender.com)
+- **Demo Video:** [Watch the KairoPass Demo](https://drive.google.com/file/d/1pH1etl-LntFd83MKz_23EYMFIff7FNq7/view?usp=sharing)
+- **Source Code:** [KaizokuHam/kairopass](https://github.com/KaizokuHam/kairopass)
+
+The React frontend and Express backend run together on Render as a single-origin
+application, with MongoDB Atlas persistence. Payments are simulated:
+**no real money is collected**.
+
 [Source code](https://github.com/KaizokuHam/kairopass) ·
 [CI](https://github.com/KaizokuHam/kairopass/actions/workflows/ci.yml) ·
 [Deployment guide](docs/deployment.md) · [Demo script](docs/demo.md) ·
 [Submission package](docs/submission.md)
-
-**Release status:** Tasks 01–13 are implemented and locally verified. Task 14
-deployment configuration and evaluator documents are prepared and published.
-A public HTTPS URL has not yet been
-verified; see the [production verification record](docs/production-verification.md).
-Payments are simulated: **no real money is collected**.
 
 ## Problem and users
 
@@ -46,7 +50,7 @@ Check-in opens two hours before an event and closes at its end.
 
 ![Actual compiled KairoPass discovery screen](docs/images/discovery.jpg)
 
-Actual Task 13 browser capture against an owned disposable MongoDB replica set.
+Actual compiled application captured against an owned disposable MongoDB replica set.
 The event records in this image were local verification fixtures; the image is
 not evidence of a hosted deployment.
 
@@ -160,10 +164,10 @@ npm run build
 npm run check
 ```
 
-The Task 13 baseline passed **1,062 tests in 42 files**: 394 frontend and 668
+The recorded verification gate passed **1,062 tests in 42 files**: 394 frontend and 668
 backend, zero failures/skips, plus lint, strict types and both builds. The
-[Task 14 verification record](docs/production-verification.md) separates current
-release checks from that historical evidence.
+[verification record](docs/production-verification.md) documents the scope and
+limitations of the release checks.
 
 Database tests start and clean only their own disposable replica sets. They
 ignore application `MONGODB_URI`; never point a cleanup fixture at Atlas.
@@ -189,18 +193,20 @@ Secure-cookie behavior.
 
 ## Deployment and evaluation
 
-[render.yaml](render.yaml) prepares one Node web service on Render's Free plan.
-It requires real Atlas access, exact assigned HTTPS Origins and separately
-generated signing keys. It does not provision a database or embed credentials.
-Follow the [deployment runbook](docs/deployment.md), then record actual results
-in [production verification](docs/production-verification.md).
+[KairoPass is deployed on Render](https://kairopass-vaibhav.onrender.com), with
+Express serving the compiled React frontend and API on one origin and MongoDB
+Atlas hosting the database. [render.yaml](render.yaml) documents the Node service
+configuration. Exact HTTPS Origins and independent signing keys belong in the
+managed environment; credentials are never embedded in the repository.
+See the [deployment runbook](docs/deployment.md) for setup and operational details.
 
 Evaluators can self-register each role. Publish a future event with registration
 still open, use an attendee account for checkout and generate a ticket. Return
 as its organizer to check in during the admission window and inspect analytics.
-The [five-minute demo script](docs/demo.md) gives exact preparation and expected
-outcomes. [Submission instructions](docs/submission.md) distinguish prepared,
-verified, uploaded and submitted.
+The [recorded demo](https://drive.google.com/file/d/1pH1etl-LntFd83MKz_23EYMFIff7FNq7/view?usp=sharing)
+shows the application walkthrough. The [demo guide](docs/demo.md) gives preparation
+and expected outcomes; [evaluator instructions](docs/submission.md) explain how
+to repeat the workflows.
 
 ## Repository map and detailed contracts
 
@@ -239,8 +245,8 @@ approval but does not establish the presenter's identity. Ticket-key rotation
 invalidates old exports; no key ring is implemented. Physical-camera compatibility
 requires a separate device check; manual full-credential entry is available.
 There is no confirmed-booking cancellation, refund, transfer or revocation-creation
-workflow. Hosted HTTPS/Atlas acceptance and video/submission status are reported
-explicitly in the release documents.
+workflow. A live deployment or demo recording does not imply that an academic
+submission form has been submitted.
 
 ## License
 

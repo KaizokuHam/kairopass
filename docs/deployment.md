@@ -1,9 +1,11 @@
 # Production deployment runbook
 
-Status on **2026-10-27**: deployment configuration prepared; no public URL has
-been verified. [Production verification](production-verification.md) is the
-authoritative acceptance record. Do not interpret this runbook as a completed
-deployment. Task 13 baseline: `c81629f1c808ab5847f57b9ac2549c804727738c`,
+Live application: [KairoPass on Render](https://kairopass-vaibhav.onrender.com).
+On **2026-10-27**, anonymous home, health and database-readiness requests returned
+HTTP 200. This runbook retains setup and recovery instructions; its account-setup
+observations describe the earlier preparation checkpoint. See
+[production verification](production-verification.md) for the evidence boundary.
+Task 13 baseline: `c81629f1c808ab5847f57b9ac2549c804727738c`,
 [passing CI](https://github.com/KaizokuHam/kairopass/actions/runs/40522838785).
 
 ## Deployment topology and cost boundary

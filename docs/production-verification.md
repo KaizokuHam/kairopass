@@ -1,5 +1,12 @@
 # Task 14 production verification record
 
+**Historical preparation record.** The application is now available at
+[KairoPass](https://kairopass-vaibhav.onrender.com). Final cleanup on 2026-10-27
+observed anonymous HTTP 200 for home, health and database readiness, and for the
+[recorded demo viewer](https://drive.google.com/file/d/1pH1etl-LntFd83MKz_23EYMFIff7FNq7/view?usp=sharing).
+The account-access blockers and untested ledger below describe the earlier
+preparation checkpoint. Final cleanup did not rerun business flows or change infrastructure.
+
 Date: **2026-10-27 (Asia/Calcutta)**. Repository:
 [KaizokuHam/kairopass](https://github.com/KaizokuHam/kairopass), branch `main`.
 Starting SHA: `c81629f1c808ab5847f57b9ac2549c804727738c`.

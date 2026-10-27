@@ -1,10 +1,8 @@
 # Five-minute KairoPass demonstration
 
-**Recording status: not recorded or uploaded.** Browser automation supports
-screenshots, not a screen-recording capability. No supported recorder has been
-confirmed in this release environment. This is a preparation script, not a claim
-that a video or live deployment exists. Use an available trusted screen recorder
-on the student's computer and verify the resulting file before uploading.
+**Recorded demo:** [Watch the KairoPass Demo](https://drive.google.com/file/d/1pH1etl-LntFd83MKz_23EYMFIff7FNq7/view?usp=sharing).
+The supplied MP4 viewer opened through an anonymous HTTPS request on 2026-10-27.
+The guide below explains how to prepare and repeat the demonstration workflows.
 
 ## Prepare before pressing Record
 
