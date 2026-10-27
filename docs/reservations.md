@@ -116,8 +116,13 @@ Allocation validates the persisted attendee and Event inside that snapshot,
 reconciles a bounded set of elapsed holds, and looks for an active user/event record.
 A valid HELD is returned unchanged, even if there is no capacity for a new hold.
 CONFIRMED conflicts. Otherwise publication, future start, and open deadline are
-checked again before a conditional Event update that includes
-`$expr: { $lt: ['$reservedCount', '$capacity'] }`. Only a matching increment permits
+checked again with a fresh clock after that active-hold query. The conditional
+Event update requires capacity below its bound **and** both startAt and
+registrationDeadline strictly greater than MongoDB `$$NOW`, alongside application
+clock predicates. A delayed query or a lagging application clock cannot allocate
+after the database's booking boundary. A database-window rejection with remaining
+capacity returns EVENT_NOT_BOOKABLE; a known full event returns EVENT_SOLD_OUT.
+Only a matching increment permits
 inserting the HELD record. Any failed insert aborts the increment. Both must commit
 before a new hold is reported as successful.
 

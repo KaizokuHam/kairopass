@@ -34,8 +34,10 @@ export async function createReservation(userId: string, eventId: string) {
       if (!event) return { error: new ApiError(404, 'EVENT_NOT_FOUND', 'Event not found.') };
       await assertEventInventory(event, session);
       event = await expireEventHolds(event, userId, new Date(Date.now()), session);
-      const now = new Date(Date.now());
       const active = await Reservation.findOne({ userId, eventId, status: { $in: ['HELD', 'CONFIRMED'] } }).session(session);
+      // Queries/reconciliation may cross a boundary. Take the allocation clock
+      // after them, then require MongoDB's current clock in the actual write too.
+      const now = new Date(Date.now());
       if (active?.status === 'CONFIRMED') return { error: conflict('ALREADY_BOOKED', 'You already have a confirmed reservation for this event.') };
       if (active && active.expiresAt > now) return { created: false, reservation: toAttendeeReservation(active, event) };
       if (active) return { error: conflict('RESERVATION_CONFLICT', 'The hold changed. Check My Reservations before trying again.') };
@@ -43,9 +45,13 @@ export async function createReservation(userId: string, eventId: string) {
       if (event.registrationDeadline <= now) return { error: conflict('REGISTRATION_CLOSED', 'Registration has closed.') };
       const allocated = await Event.findOneAndUpdate({
         _id: event._id, status: 'PUBLISHED', startAt: { $gt: now }, registrationDeadline: { $gt: now },
-        reservedCount: event.reservedCount, $expr: { $lt: ['$reservedCount', '$capacity'] }
+        reservedCount: event.reservedCount, $expr: { $and: [
+          { $lt: ['$reservedCount', '$capacity'] }, { $gt: ['$startAt', '$$NOW'] }, { $gt: ['$registrationDeadline', '$$NOW'] }
+        ] }
       }, { $inc: { reservedCount: 1, __v: 1 } }, { session, returnDocument: 'after' });
-      if (!allocated) return { error: conflict('EVENT_SOLD_OUT', 'This event is sold out. Refresh availability.') };
+      if (!allocated) return { error: event.reservedCount >= event.capacity
+        ? conflict('EVENT_SOLD_OUT', 'This event is sold out. Refresh availability.')
+        : conflict('EVENT_NOT_BOOKABLE', 'This event is no longer available for reservations.') };
       const [reservation] = await Reservation.create([{
         _id: new Types.ObjectId(), userId, eventId, status: 'HELD', amountPaise: allocated.pricePaise,
         expiresAt: new Date(now.getTime() + HOLD_DURATION_MS), createdAt: now, updatedAt: now

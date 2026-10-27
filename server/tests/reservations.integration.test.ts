@@ -36,6 +36,39 @@ async function invariant(eventId: string, expected?: number) {
   } finally { await session.endSession(); }
 }
 
+describe('reservation allocation clock boundaries', () => {
+  it.each(['STARTED', 'CLOSED'] as const)('rejects %s after the active-hold query crosses its boundary', async (boundary) => {
+    const event = await published(), user = await actor(app, 'ATTENDEE', 'boundary@example.test');
+    const cutoff = new Date(eventTime.getTime() + 1000);
+    await Event.collection.updateOne({ _id: new mongoose.Types.ObjectId(event.eventId) }, { $set: {
+      registrationDeadline: cutoff, ...(boundary === 'STARTED' ? { startAt: cutoff } : {})
+    } });
+    const find = Reservation.findOne.bind(Reservation);
+    vi.spyOn(Reservation, 'findOne').mockImplementation((...args) => {
+      const query = find(...args), filter = args[0] as Record<string, unknown> | undefined;
+      if (filter?.status && typeof filter.status === 'object') {
+        const exec = query.exec.bind(query);
+        vi.spyOn(query, 'exec').mockImplementationOnce(async () => { const result = await exec(); vi.setSystemTime(cutoff); return result; });
+      }
+      return query;
+    });
+    const response = await book(user.cookie, event.eventId).expect(409);
+    expect(response.body.error.code).toBe(boundary === 'STARTED' ? 'EVENT_NOT_BOOKABLE' : 'REGISTRATION_CLOSED');
+    expect(await Reservation.countDocuments()).toBe(0); await invariant(event.eventId, 0);
+  });
+
+  it('lets the database reject a closed deadline even when the application clock is behind', async () => {
+    const event = await published(), user = await actor(app, 'ATTENDEE', 'skew@example.test');
+    vi.useRealTimers(); const actualNow = Date.now();
+    vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(actualNow - 60000);
+    await Event.collection.updateOne({ _id: new mongoose.Types.ObjectId(event.eventId) }, { $set: {
+      startAt: new Date(actualNow + 3600000), endAt: new Date(actualNow + 7200000), registrationDeadline: new Date(actualNow - 1000)
+    } });
+    await expect(createReservation(user.id, event.eventId)).rejects.toMatchObject({ code: 'EVENT_NOT_BOOKABLE' });
+    expect(await Reservation.countDocuments()).toBe(0); await invariant(event.eventId, 0);
+  });
+});
+
 describe('transactional reservation concurrency', () => {
   it.each([1, 5])('capacity %i: 20 distinct simultaneous HTTP requests never oversell', async (capacity) => {
     const event = await published(capacity);
