@@ -1,0 +1,44 @@
+# Single-origin Express + compiled React service. See docs/deployment.md.
+# Select the Free instance explicitly; no paid database or worker is provisioned.
+services:
+  - type: web
+    name: kairopass
+    runtime: node
+    plan: free
+    region: singapore
+    repo: https://github.com/KaizokuHam/kairopass
+    branch: main
+    autoDeployTrigger: checksPass
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/ready
+    maxShutdownDelaySeconds: 30
+    envVars:
+      - key: NODE_VERSION
+        value: 24.14.0
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: LOG_LEVEL
+        value: info
+      - key: JWT_EXPIRES_IN
+        value: 12h
+      - key: JWT_ISSUER
+        value: kairopass-api
+      - key: JWT_AUDIENCE
+        value: kairopass-web
+      # Supply the Atlas URI with an explicit application database and TLS.
+      - key: MONGODB_URI
+        sync: false
+      # Set BOTH to the service's actual HTTPS origin, without a trailing slash.
+      - key: APP_ORIGIN
+        sync: false
+      - key: CLIENT_ORIGIN
+        sync: false
+      # Generate each independently with crypto.randomBytes(48).toString('base64url').
+      # Render generateValue uses padded base64, which this application rejects.
+      - key: JWT_SECRET
+        sync: false
+      - key: TICKET_HMAC_SECRET
+        sync: false
