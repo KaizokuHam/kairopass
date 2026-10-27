@@ -397,8 +397,8 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - 11 — Ticket Check-In (implemented; see verification record)
 - 12 — Organizer Analytics (implemented; see verification record)
 - 13 — Integration Testing & Hardening (implemented; see release-readiness report)
-- 14 — Production Release & Documentation (authorized; preparation in progress,
-  public deployment unverified; see production-verification.md)
+- 14 — Production Release & Documentation (configuration/documents prepared and
+  published; public deployment awaits account actions; see production-verification.md)
 
 Future tasks must continue using MongoDB/Mongoose. Implement only the task the
 user authorizes. Tasks 07 discovery, 08 reservations and 09 simulated payments are

@@ -11,7 +11,8 @@ digital tickets, entrance verification and organizer reporting in one MERN app.
 [Submission package](docs/submission.md)
 
 **Release status:** Tasks 01–13 are implemented and locally verified. Task 14
-deployment preparation is in progress. A public HTTPS URL has not yet been
+deployment configuration and evaluator documents are prepared and published.
+A public HTTPS URL has not yet been
 verified; see the [production verification record](docs/production-verification.md).
 Payments are simulated: **no real money is collected**.
 

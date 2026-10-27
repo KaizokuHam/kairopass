@@ -38,6 +38,9 @@ badge is not proof of a reachable application.
 Task 13 release baseline: `c81629f1c808ab5847f57b9ac2549c804727738c`, with
 [successful exact-head CI](https://github.com/KaizokuHam/kairopass/actions/runs/40522838785).
 Its complete gate passed 1,062 tests / 42 files, lint, strict types and both builds.
+Task 14's configuration/document candidate
+`5b9e1ac7520ba7350467f6a55409796bc9d682e3` is published and its
+[exact-head CI passed](https://github.com/KaizokuHam/kairopass/actions/runs/40530208677).
 Task 14's clean install and complete local gate also pass the same 1,062 tests,
 lint, types and both builds. Compiled production paid/free/admission/restart smoke
 checks passed on a disposable replica set. Final Git/CI details belong in the
@@ -153,9 +156,9 @@ be verified independently.
 
 | Deliverable | Prepared | Verified | Uploaded / submitted |
 | --- | --- | --- | --- |
-| Source repository | Yes | Task 14 local gate and production smoke passed; final head/CI pending | Existing main published; Task 14 publication pending |
+| Source repository | Yes | Task 14 local gate/production smoke and exact configuration-candidate CI passed | Main published; use current main SHA/CI in the form |
 | Public app / Atlas | Configuration and runbook | No public acceptance yet | Service creation unverified |
-| Documentation | README, deployment, demo, submission and evidence ledger | Local links/secret review passed | Task 14 publication pending |
+| Documentation | README, deployment, demo, submission and evidence ledger | Local links/secret review and GitHub README rendering passed | Published on main |
 | Demo video | Exact script/shot list | Recording absent | Not uploaded |
 | Academic form | Entries below prepared | Form URL/account not provided | **Not submitted** |
 

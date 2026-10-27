@@ -26,7 +26,7 @@ Submission deadline: **October 27, 2026, 11:59 PM IST**.
 | 11 | Ticket Check-In | Completed — implementation and local acceptance verified |
 | 12 | Organizer Analytics | Completed — implementation and local acceptance verified |
 | 13 | Integration Testing & Hardening | Completed — implementation and local acceptance verified; see release-readiness.md |
-| 14 | Production Release & Documentation | Authorized — preparation in progress; public deployment unverified; see production-verification.md |
+| 14 | Production Release & Documentation | Configuration/documents prepared and published; public deployment unverified; see production-verification.md |
 
 ## Task 01 acceptance record
 

@@ -49,13 +49,27 @@ user's permissions without understanding any other applications that use it.
 | Task 14 secret / link / artifact inspection | PASS — 44 local file links across five documents; 0 configured secret matches in source/history/client build; only two reviewed synthetic URI fixtures; no credential-bearing screenshot committed |
 | Compiled production smoke | PASS locally — enabled/missing/weak/reused ticket key, invalid auth and unavailable DB; paid/free confirmation/replays, ticket/admission, reporting, real process restart and graceful cleanup |
 | Local small report timing | 100 disposable events / 2,000 EXPIRED reservations: 502 / 391 / 316 ms; organizer index observed; not a hosted capacity guarantee |
-| Task 14 final pushed SHA / exact-head CI | PENDING |
+| Task 14 verified configuration/document publication | PASS — main candidate `5b9e1ac7520ba7350467f6a55409796bc9d682e3`, [exact-head CI successful](https://github.com/KaizokuHam/kairopass/actions/runs/40530208677); live remote ref checked |
+| Published README rendering | PASS — actual GitHub screenshot and Mermaid diagram rendered; no live deployment claim |
 | Task 13 complete baseline | PASS — 1,062 tests / 42 files, no failures/skips; lint/types/both builds |
 
 Tests use disposable local replica sets, ignoring application MONGODB_URI. No
 live cleanup, destructive Atlas tests, fabricated production data or simulated
 report success was used. Task 13 browser/compiled lifecycle results are in
 [release-readiness.md](release-readiness.md); they are local evidence.
+
+The publication above records the verified configuration candidate. This evidence
+record may be followed by documentation-only commits. Use the current
+[main history](https://github.com/KaizokuHam/kairopass/commits/main/) and its
+[CI run](https://github.com/KaizokuHam/kairopass/actions/workflows/ci.yml) for the
+exact final source revision; the delivery report records that final SHA/run.
+
+Publication commits:
+
+- `847ea2d5cbed017b10fdf9f920f399ce52e52869` — build(deploy): prepare single-origin
+  Render release and readiness runbook.
+- `5b9e1ac7520ba7350467f6a55409796bc9d682e3` — docs(release): prepare evaluator guide
+  demo script and submission package.
 
 ## Live acceptance ledger
 
