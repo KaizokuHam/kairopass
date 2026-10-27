@@ -7,7 +7,8 @@ import { env } from './config/env.js';
 import { checkDatabaseReadiness } from './config/database.js';
 import { ApiError } from './lib/api-error.js';
 import { apiNotFound, errorHandler } from './middleware/error-handler.js';
-import { requestLogger } from './middleware/request-logger.js';
+import { requestLogger, requestRouteScope } from './middleware/request-logger.js';
+import { securityHeaders } from './middleware/security-headers.js';
 import { parseAuthEnvironment, type AuthConfig } from './config/auth.js';
 import { createAuthRouter } from './modules/auth/auth.routes.js';
 import { createEventsRouter } from './modules/events/events.routes.js';
@@ -36,10 +37,7 @@ export function createApp(options: AppOptions = {}) {
   app.disable('x-powered-by');
   app.set('trust proxy', false);
   app.use(requestLogger(silent));
-  app.use((_req, res, next) => {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    next();
-  });
+  app.use(securityHeaders(mode === 'production'));
   // Reject malformed percent/UTF-8 escapes before router/static decoders can
   // misclassify URIError as an auth/database/internal failure.
   app.use((req, _res, next) => {
@@ -75,16 +73,17 @@ export function createApp(options: AppOptions = {}) {
   let ticketConfig: TicketConfig | null;
   try { ticketConfig = parseTicketEnvironment({ ...(options.authEnvironment ?? process.env), TICKET_HMAC_SECRET: (options.ticketEnvironment ?? options.authEnvironment ?? process.env).TICKET_HMAC_SECRET }); }
   catch { ticketConfig = null; }
-  app.use('/api/auth', createAuthRouter(authConfig));
-  app.use('/api/organizer/analytics', createAnalyticsRouter(authConfig));
-  app.use('/api/organizer/events/:eventId/analytics', createAnalyticsRouter(authConfig, true));
-  app.use('/api/organizer/events/:eventId/check-ins', createCheckInRouter(authConfig, ticketConfig));
-  app.use('/api/organizer/events', createEventsRouter(authConfig));
-  app.use('/api/events', createDiscoveryRouter());
-  app.use('/api/reservations/:id/ticket', createTicketIssuanceRouter(authConfig, ticketConfig));
-  app.use('/api/tickets', createTicketsRouter(authConfig, ticketConfig));
-  app.use('/api/reservations/:id/payments', createPaymentsRouter(authConfig));
-  app.use('/api/reservations', createReservationsRouter(authConfig));
+  const mount = (template: string, router: express.Router) => app.use(template, requestRouteScope(template), router);
+  mount('/api/auth', createAuthRouter(authConfig));
+  mount('/api/organizer/analytics', createAnalyticsRouter(authConfig));
+  mount('/api/organizer/events/:eventId/analytics', createAnalyticsRouter(authConfig, true));
+  mount('/api/organizer/events/:eventId/check-ins', createCheckInRouter(authConfig, ticketConfig));
+  mount('/api/organizer/events', createEventsRouter(authConfig));
+  mount('/api/events', createDiscoveryRouter());
+  mount('/api/reservations/:id/ticket', createTicketIssuanceRouter(authConfig, ticketConfig));
+  mount('/api/tickets', createTicketsRouter(authConfig, ticketConfig));
+  mount('/api/reservations/:id/payments', createPaymentsRouter(authConfig));
+  mount('/api/reservations', createReservationsRouter(authConfig));
   // Match the /api path boundary, including /api itself, before any SPA routes.
   app.use('/api', apiNotFound);
 

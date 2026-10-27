@@ -5,6 +5,7 @@ import express from 'express';
 import { createApp } from '../src/app.js';
 import { errorHandler } from '../src/middleware/error-handler.js';
 import { requestLogger } from '../src/middleware/request-logger.js';
+import { requestRouteScope } from '../src/middleware/request-logger.js';
 
 const app = createApp({ mode: 'test', logLevel: 'silent' });
 
@@ -119,6 +120,25 @@ describe('API foundation', () => {
     expect(output).not.toMatch(/private-query|private-auth|private-cookie/);
   });
 
+  it.each(['/private-path-credential', '/api/events/private-path-credential',
+    '/api/organizer/events/private-path-credential/check-ins'])('never logs untrusted path segments (%s)', async (path) => {
+    const log = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    const loggingApp = createApp({ mode: 'test', logLevel: 'info' });
+    await request(loggingApp).get(path);
+    expect(log).toHaveBeenCalledOnce();
+    expect(JSON.stringify(log.mock.calls)).not.toContain('private-path-credential');
+  });
+
+  it('logs canonical templates for matched nested router parameters', async () => {
+    const log = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    const loggingApp = express(), router = express.Router({ mergeParams: true });
+    loggingApp.use(requestLogger(false));
+    router.get('/:id', (_req, res) => { res.sendStatus(200); });
+    loggingApp.use('/events/:eventId/tickets', requestRouteScope('/events/:eventId/tickets'), router);
+    await request(loggingApp).get('/events/private-event/tickets/private-ticket').expect(200);
+    expect(JSON.parse(String(log.mock.calls[0]?.[0])).path).toBe('/events/:eventId/tickets/:id');
+  });
+
   it('allows only the configured development origin through CORS', async () => {
     const developmentApp = createApp({ mode: 'development', clientOrigin: 'http://localhost:5173', logLevel: 'silent' });
     const allowed = await request(developmentApp).get('/api/health').set('Origin', 'http://localhost:5173').expect(200);
@@ -131,6 +151,24 @@ describe('API foundation', () => {
 describe('production single-origin routing', () => {
   const clientDistPath = fileURLToPath(new URL('./fixtures/client/', import.meta.url));
   const productionApp = createApp({ mode: 'production', clientDistPath, logLevel: 'silent' });
+
+  it.each(['/', '/assets/app.css', '/api/health', '/api/unknown', '/assets/%FF'])('protects production HTML, assets, APIs and errors (%s)', async (path) => {
+    const response = await request(productionApp).get(path).set('Accept', 'text/html');
+    expect(response.headers['x-frame-options']).toBe('DENY');
+    expect(response.headers['referrer-policy']).toBe('no-referrer');
+    expect(response.headers['permissions-policy']).toBe('camera=(self), microphone=(), geolocation=()');
+    expect(response.headers['strict-transport-security']).toBe('max-age=31536000');
+    expect(response.headers['content-security-policy']).toContain("frame-ancestors 'none'");
+    expect(response.headers['content-security-policy']).toContain("script-src 'self'");
+    expect(response.headers['content-security-policy']).toContain("img-src 'self' data: blob:");
+    expect(response.headers['content-security-policy']).not.toMatch(/unsafe-inline|unsafe-eval|https?:|\*/);
+  });
+
+  it('leaves development HMR unrestricted by the production CSP', async () => {
+    const response = await request(app).get('/api/health').expect(200);
+    expect(response.headers['content-security-policy']).toBeUndefined();
+    expect(response.headers['strict-transport-security']).toBeUndefined();
+  });
 
   it.each(['/', '/vision', '/some/browser/route'])('serves the SPA for browser navigation to %s', async (path) => {
     const response = await request(productionApp).get(path).set('Accept', 'text/html').expect(200).expect('Content-Type', /html/);
