@@ -1,350 +1,245 @@
 # KairoPass
 
-A full-stack event booking platform with simulated payments, secure QR ticketing,
-and organizer analytics. Built as a modular monolith for an academic software
-engineering evaluation. The permanent stack is MERN: MongoDB, Express, React,
-and Node.js, with Mongoose as the only database layer.
+**Discover an event. Reserve a place. Carry a signed ticket. Enter once.**
+
+KairoPass connects event discovery, ten-minute reservations, simulated checkout,
+digital tickets, entrance verification and organizer reporting in one MERN app.
+
+[Source code](https://github.com/KaizokuHam/kairopass) ·
+[CI](https://github.com/KaizokuHam/kairopass/actions/workflows/ci.yml) ·
+[Deployment guide](docs/deployment.md) · [Demo script](docs/demo.md) ·
+[Submission package](docs/submission.md)
+
+**Release status:** Tasks 01–13 are implemented and locally verified. Task 14
+deployment preparation is in progress. A public HTTPS URL has not yet been
+verified; see the [production verification record](docs/production-verification.md).
+Payments are simulated: **no real money is collected**.
 
 ## Problem and users
 
-Event discovery, booking records, payment state, and entrance verification often
-live in disconnected tools. KairoPass brings the complete journey into one
-application for attendees and organizers. Attendees discover events and
-manage their tickets; organizers publish events, manage capacity, check in
-guests, and understand attendance.
+Small event teams often manage discovery, bookings, payment records and entrance
+lists in separate tools. KairoPass keeps that journey together with durable
+records and explicit recovery when a request is interrupted.
 
-## Product workflows
+- **Attendees:** explore upcoming events, hold one ticket, complete simulated
+  checkout, download an authentic QR ticket and review booking history.
+- **Organizers:** publish events, manage capacity, admit eligible tickets once,
+  inspect check-in history and report bookings, attendance and simulated revenue.
 
-1. Organizer event creation and management through the complete private organizer workspace.
-2. Event discovery and ticket reservations.
-3. Database-backed simulated payment processing and confirmation.
-4. Signed QR ticket issuance and secure check-in.
-5. Organizer analytics and reporting.
+## Five working workflows
 
-Payments are simulated. No real card processing or payment collection is performed.
-Public discovery and ten-minute ticket reservations are available.
-Simulated checkout and durable reservation confirmation are available. No real
-money is collected. Signed QR issuance, an attendee wallet and complete ticket PNG
-downloads are available. Organizer camera/manual check-in, single-use admission
-and retained event history are available. Organizer analytics now reports real
-bookings, simulated gross revenue, conversion, attendance and event performance.
+| Workflow | What the application does |
+| --- | --- |
+| Event management | Owned draft creation/editing, future publication, frozen published schedule/price/capacity, safe cancellation |
+| Discovery and booking | Public search, date/price/venue filters, deterministic pagination, transactional one-unit holds for ten minutes |
+| Simulated checkout | Persisted failure/success scenarios, UUID idempotency keys, retained retries, atomic confirmation |
+| Digital tickets and entry | One backend-signed QR per eligible confirmation, wallet/PNG export, camera or manual entry, atomic single-use admission |
+| Organizer analytics | Read-only owned reporting, exact simulated paise totals, cohort conversion, attendance, UTC trends and event comparison |
 
-## Stack and architecture
+An elapsed hold releases capacity through transactional expiry. Free tickets
+still require explicit zero-value checkout. A signature alone never grants
+entry: the server checks ownership, persisted eligibility, time and ticket state.
+Check-in opens two hours before an event and closes at its end.
 
-- React, Vite, TypeScript, Tailwind CSS, React Router, shadcn/ui-compatible structure.
-- Node.js 24, Express 5, TypeScript, Zod.
-- MongoDB replica set / MongoDB Atlas, Mongoose 9, explicit indexes and transaction-ready infrastructure.
-- Argon2id passwords, HTTP-only JWT cookies, MongoDB-backed sessions, and persisted-role authorization.
-- Vitest, React Testing Library, jsdom, Supertest, ESLint, npm workspaces, GitHub Actions.
+## Product preview
 
-The browser uses relative `/api` URLs. Vite proxies them to Express during
-development. In production, Express serves both the compiled client and API on
-one origin. Business modules live under `server/src/modules`; route
-handlers, business rules, and database access have separate responsibilities.
-See [architecture](docs/architecture.md) and [implementation plan](docs/implementation-plan.md).
+![Actual compiled KairoPass discovery screen](docs/images/discovery.jpg)
 
-## Local setup
+Actual Task 13 browser capture against an owned disposable MongoDB replica set.
+The event records in this image were local verification fixtures; the image is
+not evidence of a hosted deployment.
 
-Use Node.js **24.14+ on the 24.x line** and npm **11+**. `.nvmrc` selects 24.14.0.
+## Architecture
 
-```sh
+```mermaid
+flowchart LR
+    B[React browser application] -->|Same-origin HTTPS /api| E[Express modular monolith]
+    E --> A[Authentication and live sessions]
+    E --> M[Events and public discovery]
+    E --> R[Reservations and expiry]
+    E --> P[Simulated payments]
+    E --> T[Tickets and admission]
+    E --> N[Read-only analytics]
+    A --> D[(MongoDB replica set / Atlas)]
+    M --> D
+    R --> D
+    P --> D
+    T --> D
+    N --> D
+    E -->|Compiled client assets and SPA routes| B
+```
+
+One Node process serves both React and `/api` in production. Controllers handle
+HTTP boundaries; services enforce business transitions through the single
+Mongoose connection. Explicit DTOs isolate persistence from presentation.
+Development uses Vite at `http://localhost:5173`, proxying `/api` to
+`http://127.0.0.1:4000`.
+
+| Layer | Committed versions |
+| --- | --- |
+| Runtime | Node 24.14.0 (supported range 24.14+ below 25), npm 11.9.0 |
+| Frontend | React 19.3.1, Vite 8.3.5, React Router 8.5.0, Tailwind CSS 4.3.3 |
+| Backend | Express 5.3.0, Mongoose 9.11.4, Zod 4.6.7, TypeScript 6.0.3 |
+| Security | Argon2id, HS256 JWT cookies, persisted revocable sessions, independent ticket HMAC-SHA256 |
+| Verification | Vitest 5.0.5, RTL/user-event, Supertest, real MongoDB 8.2.6 disposable replica sets, GitHub Actions |
+
+### Engineering decisions
+
+- **Capacity correctness:** allocate/release an Event unit and transition its
+  Reservation in one transaction; check inventory against HELD + CONFIRMED.
+- **Payment recovery:** persist PENDING before finalization; the same key resumes
+  the original request. A deliberate retry after failure uses a new key.
+- **Ticket authenticity:** backend-generated nonce, canonical signed payload,
+  unique reservation/nonce indexes and a signing key independent of JWT.
+- **Replay-safe entry:** a conditional ISSUED → USED write with database-clock
+  eligibility approves one scanner; replay retains the original admission time.
+- **Trustworthy reporting:** snapshot aggregations reduce payment retries before
+  joins; integer paise totals travel as strings and render through BigInt.
+- **Session safety:** HttpOnly/Secure production cookies, exact configured Origin,
+  live persisted roles and ownership; no tokens or identity in browser storage.
+
+See [architecture](docs/architecture.md), [database](docs/database.md) and the
+[release-readiness audit](docs/release-readiness.md) for trade-offs and limits.
+
+## Run locally
+
+Prerequisites: Node 24.14+ on the 24.x line, npm 11+, and an owned transactional
+MongoDB replica set or Atlas database. A standalone MongoDB server is rejected.
+
+```powershell
 npm ci
-# PowerShell:
 Copy-Item .env.example .env
-# macOS / Linux alternative: cp .env.example .env
+# Configure your replica-set URI and two independent signing secrets in .env.
 npm run dev
 ```
 
-The web app runs at <http://localhost:5173> and the API at
-<http://127.0.0.1:4000>. The shell and `/api/health` work without a database;
-`/api/ready` returns 503 until MongoDB is ready. For full database readiness, start
-an owned MongoDB replica set and initialize it as described in
-[database setup](docs/database.md#local-development). A standalone server is rejected.
-Registration, login, session restoration, and logout require database readiness
-and valid JWT configuration. Open Vite at **http://localhost:5173**, matching
-`CLIENT_ORIGIN`; `127.0.0.1:5173` is a different Origin and is not silently trusted.
-The `/api` proxy continues to target `http://127.0.0.1:4000`.
+On macOS/Linux use `cp .env.example .env`. The [database guide](docs/database.md#local-development)
+shows replica-set initialization. Open **http://localhost:5173** so the browser
+Origin matches `CLIENT_ORIGIN`. Keep Vite's proxy target at 127.0.0.1:4000.
+The shell and liveness work without MongoDB; business workflows need readiness.
 
-| Command | Purpose |
-| --- | --- |
-| `npm install` | Install after intentionally changing dependency manifests |
-| `npm ci` | Reproduce the committed lockfile across both workspaces |
-| `npm run dev` | Start Vite and Express together; stop both with Ctrl+C |
-| `npm run dev -w client` | Start the frontend independently |
-| `npm run dev -w server` | Start the backend independently |
-| `npm run lint` | Lint the repository, rejecting warnings |
-| `npm run typecheck` | Type-check both workspaces |
-| `npm test` | Run frontend, HTTP, configuration, and real MongoDB integration tests |
-| `npm run test:web` | Run frontend API, state, forms, routing, and validation tests |
-| `npm run test:watch -w client` | Run frontend tests in watch mode |
-| `npm run test:unit` | Run HTTP/configuration/disconnected guard tests without MongoDB |
-| `npm run test:db` | Start an owned disposable MongoDB replica set and run database tests |
-| `npm run test:auth` | Run authentication unit and real HTTP integration tests |
-| `npm run test:events` | Run event ownership, validation, lifecycle, and concurrency integration tests |
-| `npm run test:discovery` | Run public visibility, search, filtering, and pagination integration tests |
-| `npm run test:reservations` | Run real allocation, expiry, cancellation, ownership, and concurrency tests |
-| `npm run test:payments` | Run real simulated-payment idempotency, pending recovery, confirmation and race tests |
-| `npm run test:tickets` | Run signing/verification and real MongoDB issuance, isolation and recovery tests |
-| `npm run test:checkin` | Run admission policy and real MongoDB verification, replay and concurrency tests |
-| `npm run test:analytics` | Run real reporting accuracy, retry deduplication, date/cohort and tenant-isolation tests |
-| `npm run test:release` | Run the connected lifecycle with snapshot inventory, reconnect and read-only reporting checks |
-| `npm run test:watch` | Run backend tests in watch mode |
-| `npm run build` | Compile client and server |
-| `npm run check` | Run lint, type checks, tests, and builds |
-| `npm start` | Start the compiled Express server |
-
-## Environment
-
-Copy the documented [`.env.example`](.env.example) into the repository root.
-`PORT`, `HOST`, `NODE_ENV`, `CLIENT_ORIGIN`, `API_PROXY_TARGET`, and `LOG_LEVEL`
-configure the foundation. If you change `PORT`, also update `API_PROXY_TARGET`
-and any explicit `APP_ORIGIN`.
-Without an explicit `HOST`, development/test bind to `127.0.0.1` and production
-binds to `0.0.0.0`, accepting the platform-provided `PORT`. When copying the local
-example into a hosted environment, replace its explicit `HOST=127.0.0.1` with
-`HOST=0.0.0.0` or omit HOST. An explicit bind address is always respected.
-`MONGODB_URI` selects the application database. The example uses an initialized
-local `rs0` replica set. Production uses an environment-provided Atlas URI; no real
-URI is committed. Replace the `JWT_SECRET` placeholder with a fresh base64url
-signing key before using authentication:
+Generate each signing key independently, running this command twice:
 
 ```sh
 node -e "process.stdout.write(require('node:crypto').randomBytes(48).toString('base64url'))"
 ```
 
-Paste the result only into the ignored `.env` or a secret store. JWT lifetime
-defaults to 12 hours. Production requires an explicit HTTPS `APP_ORIGIN` and
-always uses Secure cookies. Missing/weak JWT configuration leaves liveness
-available but makes auth endpoints return 503; no fallback secret exists.
-See [authentication setup and API](docs/authentication.md) for Origin, cookie,
-rate-limit, proxy, and credential requirements.
-Never put secrets in `VITE_*` variables: Vite exposes those to the
-browser. Environment files, dependencies, and build output are ignored by Git.
+Save values only in the ignored `.env` or hosting secret manager. Never commit
+them, share them in screenshots or place them in `VITE_*`.
 
-For a production preview, first run `npm run build`, set `NODE_ENV=production`
-in your environment, then run `npm start`. For example, in PowerShell:
+### Environment reference
 
-```powershell
-$env:NODE_ENV = 'production'
-npm start
+| Name | Purpose |
+| --- | --- |
+| `NODE_ENV` | development locally; production on the host |
+| `HOST`, `PORT` | Loopback/4000 locally; 0.0.0.0 and provider PORT when hosted |
+| `MONGODB_URI` | TLS Atlas URI or owned local replica-set URI with explicit database |
+| `APP_ORIGIN` | Explicit API/browser origin; exact HTTPS public origin in production, no trailing slash |
+| `CLIENT_ORIGIN` | localhost:5173 for development; actual public origin when hosted |
+| `API_PROXY_TARGET` | Development only, http://127.0.0.1:4000 |
+| `JWT_SECRET` | Strong canonical base64url session-signing key |
+| `TICKET_HMAC_SECRET` | Independent strong canonical base64url QR-signing key |
+| `JWT_EXPIRES_IN`, `JWT_ISSUER`, `JWT_AUDIENCE` | Session lifetime and verification identifiers |
+| `LOG_LEVEL` | info or silent |
+| `AUTH_LOGIN_MAX_REQUESTS`, `AUTH_REGISTER_MAX_REQUESTS` | Separate per-IP, per-process 15-minute limits; defaults 10 and 5 |
+
+Missing/weak signing configuration fails its protected features with 503.
+`/api/ready` verifies database topology, indexes and ping; it does not certify
+signing configuration. Initial connection failures require a corrected restart.
+Production cookies are always Secure. See [deployment](docs/deployment.md) for
+hosted configuration, proxy/limiter limits and recovery.
+
+## Verify and build
+
+```sh
+npm run lint
+npm run typecheck
+npm test
+npm run build
+npm run check
 ```
 
-Open <http://127.0.0.1:4000>. Restore development mode afterward with
-`Remove-Item Env:NODE_ENV`. Database readiness requires a reachable transactional
-MongoDB deployment; the liveness endpoint remains independent.
+The Task 13 baseline passed **1,062 tests in 42 files**: 394 frontend and 668
+backend, zero failures/skips, plus lint, strict types and both builds. The
+[Task 14 verification record](docs/production-verification.md) separates current
+release checks from that historical evidence.
 
-## Repository layout
+Database tests start and clean only their own disposable replica sets. They
+ignore application `MONGODB_URI`; never point a cleanup fixture at Atlas.
+Frontend tests run at the HTTP boundary with real provider/router behavior.
+A quiet host is needed for the unchanged startup/assertion deadlines.
+
+| Command | Scope |
+| --- | --- |
+| `npm run test:unit` | No MongoDB process |
+| `npm run test:db` | Complete real database integrations |
+| `npm run test:auth`, `test:events`, `test:discovery` | Authentication and event APIs |
+| `npm run test:reservations`, `test:payments`, `test:tickets` | Inventory, idempotency, cryptography and issuance |
+| `npm run test:checkin`, `test:analytics` | Admission and reporting |
+| `npm run test:release` | Connected lifecycle and independent inventory/reporting checks |
+| `npm run test:web` | Frontend interactions and HTTP-boundary tests |
+| `npm run test:watch -w client` | Frontend watch |
+| `npm run test:watch` | Backend watch |
+
+To run the compiled production server: build, supply production environment
+settings, then `npm start`. It serves `client/dist` and `server/dist/server.js`;
+Vite and tsx are development tools. A local HTTP preview cannot prove HTTPS
+Secure-cookie behavior.
+
+## Deployment and evaluation
+
+[render.yaml](render.yaml) prepares one Node web service on Render's Free plan.
+It requires real Atlas access, exact assigned HTTPS Origins and separately
+generated signing keys. It does not provision a database or embed credentials.
+Follow the [deployment runbook](docs/deployment.md), then record actual results
+in [production verification](docs/production-verification.md).
+
+Evaluators can self-register each role. Publish a future event with registration
+still open, use an attendee account for checkout and generate a ticket. Return
+as its organizer to check in during the admission window and inspect analytics.
+The [five-minute demo script](docs/demo.md) gives exact preparation and expected
+outcomes. [Submission instructions](docs/submission.md) distinguish prepared,
+verified, uploaded and submitted.
+
+## Repository map and detailed contracts
 
 ```text
-.
-├── client/
-│   ├── public/                 # Static brand asset
-│   ├── src/
-│   │   ├── components/ui/      # Reusable UI primitives
-│   │   ├── pages/              # Public/auth pages, dashboards, organizer event pages, 404
-│   │   ├── layouts/            # Navigation, main content, footer
-│   │   ├── hooks/              # Auth, health, scoped event reads and mutations
-│   │   ├── services/           # Relative-path HTTP client
-│   │   ├── context/            # In-memory session state and request coordination
-│   │   ├── lib/                # Form validation, safe destinations, styling
-│   │   ├── tests/              # Frontend HTTP-boundary and interaction tests
-│   │   ├── types/              # Client API contracts
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   └── components.json         # shadcn/ui conventions and aliases
-├── server/
-│   ├── src/
-│   │   ├── modules/auth/       # Routes, controllers, services, validation, JWT/password utilities
-│   │   ├── modules/events/     # Private organizer event management, lifecycle, and DTOs
-│   │   ├── modules/discovery/  # Public upcoming-event search, filtering, pagination, and safe DTOs
-│   │   ├── modules/reservations/ # Atomic holds, owned history, cancellation and expiry worker
-│   │   ├── modules/payments/   # Persisted simulated checkout, idempotency, history and atomic confirmation
-│   │   ├── models/             # Five business models plus AuthSession and verified indexes
-│   │   ├── types/              # Public response DTOs
-│   │   ├── middleware/         # Logging, errors, API 404
-│   │   ├── config/             # Zod environment and MongoDB lifecycle/readiness
-│   │   ├── lib/                # API error class
-│   │   ├── app.ts              # Testable Express factory
-│   │   └── server.ts           # HTTP lifecycle
-│   └── tests/                  # HTTP, config, disposable replica-set tests
-├── docs/
-│   ├── architecture.md
-│   ├── authentication.md
-│   ├── database.md
-│   ├── events.md
-│   └── implementation-plan.md
-├── .github/workflows/ci.yml
-├── .env.example
-├── AGENTS.md
-├── package.json
-├── package-lock.json
-└── LICENSE
+client/src/         pages, layouts, scoped hooks, typed services, auth context, UI
+server/src/
+  modules/         auth, events, discovery, reservations, payments, tickets,
+                   checkin, analytics
+  models/          User, AuthSession, Event, Reservation, PaymentAttempt, Ticket
+  config/          validated environment and one MongoDB lifecycle
+  middleware/      readiness/auth/Origin/error/logging/browser-policy boundaries
+  app.ts           import-safe Express factory
+  server.ts        HTTP, expiry worker and shutdown lifecycle
+docs/              contracts, audits, deployment, demo and submission records
+.github/workflows/ci.yml
 ```
 
-## API foundation
+Business contracts: [auth](docs/authentication.md), [events](docs/events.md),
+[discovery](docs/discovery.md), [reservations](docs/reservations.md),
+[payments](docs/payments.md), [tickets](docs/ticketing.md),
+[check-in](docs/checkin.md), [analytics](docs/analytics.md).
+Historical milestones and test counts are retained in the
+[implementation plan](docs/implementation-plan.md); the
+[midpoint audit](docs/rubric-audit.md) is historical.
 
-`GET /api/health` is a database-independent liveness check:
+## Known limitations
 
-```json
-{ "success": true, "message": "KairoPass API is running" }
-```
+Payments are deliberately simulated. Public organizer self-registration is an
+academic-project policy. Free hosting can sleep and delay background cleanup.
+Proxy trust remains false pending a verified provider-specific policy, so users
+may share authentication rate-limit buckets behind a proxy. Limiters are
+in-memory per process. Local load results do not guarantee hosted capacity.
 
-Errors consistently return `success: false` with `error.code`, `error.message`,
-and `error.requestId`. The response's `X-Request-Id` matches the identifier in
-request logs. Unknown `/api` routes return JSON 404s, including in production;
-missing assets are never replaced with SPA HTML. The app rejects malformed or
-oversized JSON and hides internal error details.
-
-`GET /api/ready` returns 200 only after the connection, replica-set/sharded
-topology, required indexes, and bounded database ping succeed. Otherwise it
-returns a consistent 503 `DATABASE_UNAVAILABLE` error. Initial database failures
-are reported without leaking credentials; restart the API after correcting them.
-Database-backed routers in later tasks must use the exported readiness guard.
-
-## Authentication API
-
-| Method / endpoint | Behavior |
-| --- | --- |
-| `POST /api/auth/register` | Validate attendee/organizer input, hash password, atomically create user/session; 201 |
-| `POST /api/auth/login` | Verify credentials, create session, set HTTP-only JWT cookie; 200 |
-| `GET /api/auth/me` | Verify JWT, active session, and current persisted user; 200 or 401 |
-| `POST /api/auth/logout` | Revoke only the current session, clear cookie; 200 |
-
-Unsafe auth requests require an exact trusted Origin; registration/login also
-require JSON and have separate per-IP limits. No token or password hash is
-returned in JSON. [Authentication documentation](docs/authentication.md) contains
-example requests/responses and the security/deployment trade-offs.
-
-The CI workflow runs `npm ci`, lint, type checks, tests, and production builds
-on pushes and pull requests. Tests start their own MongoDB replica set; no shared
-database, Atlas credentials, or deployment secrets are required. The first DB test
-run may download MongoDB 8.2.6 from the official binary distribution. Tests never
-read application `MONGODB_URI` for data cleanup.
-
-## Authentication experience
-
-| Route | Behavior |
-| --- | --- |
-| `/`, `/vision` | Public overview and roadmap |
-| `/events`, `/events/:id` | Public upcoming marketplace and event details; no sign-in required |
-| `/login`, `/register` | Accessible forms; authenticated users return to their own dashboard |
-| `/attendee/dashboard` | Attendee account overview, Explore Events and My Reservations navigation |
-| `/attendee/reservations`, `/attendee/reservations/:id` | Protected attendee history, hold countdown, and cancellation |
-| `/organizer/dashboard` | Account overview, live recent events, functional event-management navigation |
-
-Registration signs the user in immediately using the real API response. Refresh
-restores identity through `/api/auth/me`; only a 401 confirms a signed-out session.
-Network/server failures show a retryable unavailable state and hide protected
-content. Wrong-role dashboard visits show an access-denied screen. Logout returns
-to the public page only after backend revocation succeeds. Account data comes
-from the backend; dashboards contain no fabricated events, counts, or revenue.
-
-`AuthProvider` keeps public user state in memory, cancels superseded reads, and
-serializes account mutations. Tokens remain in HTTP-only cookies; JavaScript
-does not read cookies or use browser storage. See the
-[frontend architecture and recovery behavior](docs/authentication.md#frontend-session-and-routing).
-
-## Implementation status
-
-**Current milestone: Task 13 integration and hardening verified.** Attendees can reserve one ticket for
-ten minutes, run a clearly labelled simulated success/failure checkout, retry a
-failed attempt, and view retained reservation/payment history. No money is collected.
-Idempotency keys bind immutable requests; PENDING attempts survive interruptions;
-successful payment and HELD → CONFIRMED commit atomically without reallocating inventory.
-Free holds use explicit zero-value confirmation. Confirmed reservations offer
-Generate Ticket or View Ticket; the attendee wallet retains real signed tickets
-with stable identities and complete PNG download. Issuance requires matching
-durable successful-payment evidence and never changes inventory or confirmation.
-Organizers can scan or paste signed credentials for their events, approve eligible
-admission exactly once, and review persisted check-in history. USED tickets retain
-their original admission time and no longer expose an active attendee QR.
-Organizers can compare owned events in a private analytics dashboard with exact
-simulated gross revenue, booking-cohort conversion, lifetime attendance, UTC trends
-and period/event filters. Every value comes from persisted records; no real money
-is collected. Current inventory and selected-period activity are labelled separately.
-See [analytics definitions, API and reporting caveats](docs/analytics.md),
-[admission policy, atomic consumption and scanner limitations](docs/checkin.md),
-[ticket signing, recovery and limitations](docs/ticketing.md),
-[payment architecture and recovery](docs/payments.md),
-[reservation invariants](docs/reservations.md), and the
-[Task 13 release-readiness report](docs/release-readiness.md).
-The quality gate passes **1,062 tests / 42 files** (394 frontend, 668 backend), lint,
-strict types and both builds. Task 13 closes late booking allocation with fresh
-application and database-clock guards, removes raw URL paths from access logs,
-adds production browser defenses and fixes the small-mobile scanner overflow.
-The real-browser paid/free checkout, QR export, admission/replay and reporting
-journeys are verified; deployment HTTPS/proxy/Atlas and physical-camera checks
-remain explicit Task 14 work. Earlier milestone records below are historical.
-
-Tasks 01–02 establish the application and MongoDB foundation. Task 03 adds the
-four authentication endpoints, Argon2id passwords, revocable JWT sessions,
-authorization middleware, rate limiting, and CSRF defenses. Authentication-specific
-verification passes **90 tests**, including **68 real HTTP integration tests**
-against an owned replica set. The full quality gate passes **165 tests / 6 files**,
-lint, strict types, and both builds after a clean install. Compiled-server smoke
-checks verify registration/login/me/logout, copied-token rejection, independent
-sessions, CSRF, cookie flags, and safe failures with invalid JWT configuration or
-unavailable MongoDB. The unit-only command separately passes **57 tests**.
-
-Task 04 adds the real authentication frontend, protected routes, role dashboards,
-and responsive navigation. The clean-install quality gate passes **225 tests**:
-**60 frontend tests / 5 files** and **165 backend tests / 6 files**, plus lint,
-strict types, and both production builds. Real-browser checks cover both roles,
-session restoration, login/logout, cross-role rejection, and responsive layouts.
-Its verification record is in the
-[implementation plan](docs/implementation-plan.md#task-04-acceptance-record).
-The backend security implementation, business models, proxy target, and production
-single-origin serving are preserved. See
-[CI runs](https://github.com/KaizokuHam/kairopass/actions/workflows/ci.yml) for remote
-verification and [database architecture](docs/database.md) for data-integrity limits.
-
-Task 05 adds six private organizer event endpoints for draft creation, scoped
-listing/detail, editing, publication, and safe cancellation. Strict input schemas,
-ownership filters, conditional writes, and a cancellation transaction preserve
-lifecycle and inventory rules. See [event API contracts](docs/events.md) and the
-[Task 05 acceptance record](docs/implementation-plan.md#task-05-acceptance-record).
-The clean-install quality gate passes **319 tests / 14 files**: **94 event
-integration tests**, **165 existing backend tests**, and **60 frontend tests**,
-plus lint, strict types, and both production builds.
-
-Task 06 connects the organizer workspace to those APIs: validated create/edit
-forms, real list/detail views, confirmed publication/cancellation, and live
-dashboard links. The backend implementation is unchanged. See
-[organizer frontend behavior](docs/events.md#organizer-frontend-task-06) and the
-[Task 06 acceptance record](docs/implementation-plan.md#task-06-acceptance-record).
-Its clean-install quality gate passes **395 tests / 20 files**: **136 frontend
-tests** (76 added in Task 06) and **259 unchanged backend tests**, plus lint,
-strict TypeScript, and both production builds. Real-browser verification covers
-paid/free creation, editing, publication/cancellation, refresh persistence,
-filters/pagination, role/ownership protection, and desktop/tablet/mobile layouts.
-
-Task 07 adds public `/api/events` list/detail APIs and `/events` marketplace/detail
-pages. Published upcoming events are searchable by title/venue with price/date
-filters, deterministic sorting, bounded server pagination, and shareable URLs.
-Draft/cancelled/past events stay hidden; registration-closed and sold-out upcoming
-events remain visible with accurate labels. See [discovery contracts](docs/discovery.md).
-The clean-install gate passes **512 tests / 24 files**: **199 frontend** and
-**313 backend**, including **63 new frontend** and **54 new backend** tests,
-plus lint, strict types, and both builds. Real browser checks verify the organizer
-publication-to-discovery lifecycle, cancellation exclusion/history, anonymous and
-attendee access, queries/pagination, and responsive layouts. Compiled-server checks
-also verify public access without JWT configuration and safe database failures.
-
-Task 08 adds reservation orchestration, atomic inventory and expiring holds.
-Task 09 adds simulated checkout and atomic confirmation. Task 10 adds secure QR
-ticket issuance and the attendee wallet. Task 11 adds atomic single-use admission
-and the organizer scanner/history workspace. Task 12 adds organizer-scoped analytics.
-Tasks 13 integration/hardening and 14 deployment remain upcoming.
-Displayed public capacity never guarantees allocation.
-[AGENTS.md](AGENTS.md) records the permanent stack and
-engineering rules for future sessions.
-
-The [mid-project rubric audit](docs/rubric-audit.md) verifies Tasks 01–07 separately
-from final-project completeness. It corrects HTTP/log error boundaries, production
-binding defaults, live publication deadlines, and test worker contention. The final
-audit gate passes **522 tests** (201 frontend, 321 backend), lint, strict types, and
-both builds. Its verdict is **READY WITH DOCUMENTED NONBLOCKING RISKS** for Task 08;
-hosted evaluator access and the remaining business workflows are still required.
+Static QR exports can be copied; persisted single-use admission prevents a second
+approval but does not establish the presenter's identity. Ticket-key rotation
+invalidates old exports; no key ring is implemented. Physical-camera compatibility
+requires a separate device check; manual full-credential entry is available.
+There is no confirmed-booking cancellation, refund, transfer or revocation-creation
+workflow. Hosted HTTPS/Atlas acceptance and video/submission status are reported
+explicitly in the release documents.
 
 ## License
 

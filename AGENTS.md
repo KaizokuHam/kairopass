@@ -364,6 +364,26 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - Browser and database evidence stays disposable. Do not commit QR screenshots,
   downloaded tickets, credentials, test binaries or generated artifacts.
 
+## Production release contract (Task 14)
+
+- Read docs/deployment.md and docs/production-verification.md before deploying.
+  Preserve the single-origin compiled Express/React service and Atlas/Mongoose.
+- render.yaml prepares a Free Node service; never infer paid billing authorization.
+  Use managed environment secrets, the actual exact HTTPS Origin and provider PORT.
+- Generate independent canonical base64url JWT/TICKET keys and preserve them across
+  restart/rollback. Render generateValue uses padded base64 and is not compatible.
+- Restrict Atlas to actual service egress ranges; no silent 0.0.0.0/0 allowlist.
+  Use an explicit application database and verify index/transaction privileges.
+- Readiness is the provider health gate, but does not validate auth/ticket keys.
+  Correct initial connection failures and restart; do not add uncontrolled retries.
+- Keep trust proxy false until the provider ingress/header policy is verified.
+  Document shared auth buckets, process-local limits and free-host worker sleep.
+- Live verification uses limited owned demo flows and retains their history.
+  Disposable test cleanup must never target Atlas. Keep live QRs/secrets private.
+- Only record public HTTPS/Atlas workflows as PASS after observing them. A script,
+  Blueprint or successful CI is not a deployed app, video or submitted academic form.
+- Keep README, deployment/demo/submission and production-verification status aligned.
+
 ## Remaining roadmap
 
 - 03 — Authentication Backend (implemented; see verification record)
@@ -377,11 +397,12 @@ models, indexes, inventory, payments, tickets, or connection behavior.
 - 11 — Ticket Check-In (implemented; see verification record)
 - 12 — Organizer Analytics (implemented; see verification record)
 - 13 — Integration Testing & Hardening (implemented; see release-readiness report)
-- 14 — Production Release & Documentation
+- 14 — Production Release & Documentation (authorized; preparation in progress,
+  public deployment unverified; see production-verification.md)
 
 Future tasks must continue using MongoDB/Mongoose. Implement only the task the
 user authorizes. Tasks 07 discovery, 08 reservations and 09 simulated payments are
 implemented, as are Task 10 QR ticketing, Task 11 single-use admission and Task 12
 organizer analytics. Task 13 integration/hardening is implemented and verified.
-Task 14 deployment still requires separate authorization; do not start it as
-part of the audit or infer authorization from its checklist.
+Task 14 has separate explicit authorization. Continue its release scope without
+adding product features; do not mark it complete before actual public acceptance.
